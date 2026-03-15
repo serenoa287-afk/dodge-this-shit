@@ -36,7 +36,6 @@ class Game {
         this.mousePos = { x: 0, y: 0 };
         
         // UI elements
-        this.startBtn = document.getElementById('start-btn');
         this.pauseBtn = document.getElementById('pause-btn');
         this.resetBtn = document.getElementById('reset-btn');
         this.restartBtn = document.getElementById('restart-btn');
@@ -116,7 +115,6 @@ class Game {
         });
         
         // Button events
-        this.startBtn.addEventListener('click', () => this.startGame());
         this.pauseBtn.addEventListener('click', () => this.togglePause());
         this.resetBtn.addEventListener('click', () => this.resetGame());
         this.restartBtn.addEventListener('click', () => this.restartGame());
