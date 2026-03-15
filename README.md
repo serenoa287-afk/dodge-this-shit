@@ -121,38 +121,7 @@ dodge-this-shit-game/
 **Author**: Serenoa  
 **Inspired by**: The Warcraft 3 custom map "Dodge This Shit"
 
-## 🐳 Running Inside OpenClaw Container
 
-If you're running OpenClaw in a Docker container and want to start the game:
-
-```bash
-# Navigate to game directory
-cd dodge-this-shit-game
-
-# Start just the game server (port 3000)
-./run-in-container.sh
-
-# OR start both game + multiplayer servers
-./start-both.sh
-
-# Access at: http://localhost:3000
-```
-
-**Important:** For the game to be accessible from your host machine, the Docker container must have port 3000 mapped:
-```bash
-# When starting OpenClaw container, add:
-docker run -p 3000:3000 ... [other options]
-
-# If container is already running, you may need to:
-# 1. Stop it
-# 2. Restart with port mapping
-# 3. Use the startup scripts above
-```
-
-**Troubleshooting:**
-- If you can't access `localhost:3000`, check if port is mapped
-- Use `docker ps` to see port mappings
-- Inside container, test with `curl http://localhost:3000`
 
 ## License
 
