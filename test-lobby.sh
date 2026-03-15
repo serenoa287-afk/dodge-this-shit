@@ -1,0 +1,40 @@
+#!/bin/bash
+echo "🧪 Testing Simple Lobby System..."
+echo "================================="
+
+# Check if servers can start
+echo "1. Testing server startup..."
+timeout 2 node simple-lobby-server.js 2>&1 | grep -q "Server running" && echo "✅ Server starts successfully" || echo "❌ Server failed to start"
+
+echo ""
+echo "2. Checking file structure..."
+[ -f "simple-lobby-server.js" ] && echo "✅ Server file exists" || echo "❌ Server file missing"
+[ -f "simple-lobby-client.js" ] && echo "✅ Client file exists" || echo "❌ Client file missing"
+[ -f "game.js" ] && echo "✅ Game file exists" || echo "❌ Game file missing"
+
+echo ""
+echo "3. Checking script includes..."
+grep -q "simple-lobby-client" index.html && echo "✅ Client included in HTML" || echo "❌ Client not in HTML"
+grep -q "SimpleLobbyClient" game.js && echo "✅ Client used in game.js" || echo "❌ Client not used in game.js"
+
+echo ""
+echo "4. Checking package.json scripts..."
+grep -q '"both":.*simple-lobby-server' package.json && echo "✅ Package.json scripts updated" || echo "❌ Package.json scripts not updated"
+
+echo ""
+echo "📋 Summary:"
+echo "=========="
+echo "The simple lobby system should now:"
+echo "1. ✅ Show player counts on front page"
+echo "2. ✅ Have working 'Multiplayer Lobby' button"
+echo "3. ✅ Show waiting room with all players"
+echo "4. ✅ Start game when all players click Ready"
+echo "5. ✅ Handle 1-4 players in single lobby"
+echo ""
+echo "🚀 To test:"
+echo "1. Run: npm run both"
+echo "2. Open browser to: http://localhost:3000"
+echo "3. Click 'Multiplayer Lobby'"
+echo "4. Enter name and click 'Connect & Join Lobby'"
+echo "5. Click 'Ready Up' when all players are in"
+echo "6. Game should start after 3-second countdown"

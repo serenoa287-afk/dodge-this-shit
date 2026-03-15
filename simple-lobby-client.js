@@ -308,6 +308,14 @@ class SimpleLobbyClient {
                 }
                 break;
                 
+            case 'playerMoved':
+                const movingPlayer = this.lobbyPlayers.get(message.playerId);
+                if (movingPlayer && message.playerId !== this.playerId) {
+                    movingPlayer.x = message.x;
+                    movingPlayer.y = message.y;
+                }
+                break;
+                
             case 'playerCountUpdate':
                 this.totalPlayers = message.totalPlayers;
                 this.lobbyPlayerCount = message.lobbyPlayers;
@@ -328,6 +336,36 @@ class SimpleLobbyClient {
                 
             case 'gameStateUpdate':
                 this.updateGameState(message);
+                break;
+                
+            case 'playerHit':
+                if (message.playerId === this.playerId) {
+                    // Update local player lives
+                    this.game.lives = message.lives;
+                    this.game.updateUI();
+                    
+                    if (message.lives <= 0) {
+                        this.showMessage('You died!');
+                    }
+                }
+                break;
+                
+            case 'playerDied':
+                if (message.playerId === this.playerId) {
+                    this.showMessage('You died!');
+                } else {
+                    const deadPlayer = this.lobbyPlayers.get(message.playerId);
+                    if (deadPlayer) {
+                        this.showMessage(`${deadPlayer.name} died!`);
+                    }
+                }
+                break;
+                
+            case 'scoreUpdate':
+                const scoringPlayer = this.lobbyPlayers.get(message.playerId);
+                if (scoringPlayer) {
+                    scoringPlayer.score = message.score;
+                }
                 break;
                 
             case 'roundEnded':
@@ -423,9 +461,26 @@ class SimpleLobbyClient {
     updateGameState(message) {
         // Update server enemies
         this.serverEnemies.clear();
-        message.enemies.forEach(enemy => {
-            this.serverEnemies.set(enemy.id, enemy);
-        });
+        if (message.enemies) {
+            message.enemies.forEach(enemy => {
+                this.serverEnemies.set(enemy.id, enemy);
+            });
+        }
+        
+        // Update other player positions
+        if (message.players) {
+            message.players.forEach(playerData => {
+                if (playerData.id !== this.playerId) {
+                    const player = this.lobbyPlayers.get(playerData.id);
+                    if (player) {
+                        player.x = playerData.x;
+                        player.y = playerData.y;
+                        player.lives = playerData.lives;
+                        player.score = playerData.score;
+                    }
+                }
+            });
+        }
     }
     
     sendMove(x, y) {
@@ -434,6 +489,15 @@ class SimpleLobbyClient {
                 type: 'move',
                 x: x,
                 y: y
+            }));
+        }
+    }
+    
+    sendEnemyKilled(enemyId) {
+        if (this.connected && this.inLobby && this.gameActive && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'enemyKilled',
+                enemyId: enemyId
             }));
         }
     }
@@ -454,11 +518,21 @@ class SimpleLobbyClient {
                 ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Draw name
+                // Draw name and score
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '12px "Roboto Mono"';
                 ctx.textAlign = 'center';
-                ctx.fillText(player.name, player.x, player.y - 25);
+                ctx.fillText(`${player.name} (${player.score})`, player.x, player.y - 25);
+                
+                // Draw lives
+                if (player.lives > 0) {
+                    ctx.fillStyle = '#ff0000';
+                    for (let i = 0; i < player.lives; i++) {
+                        ctx.beginPath();
+                        ctx.arc(player.x - 15 + (i * 10), player.y + 25, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
             }
         });
     }
@@ -477,7 +551,29 @@ class SimpleLobbyClient {
             ctx.beginPath();
             ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
             ctx.stroke();
+            
+            // Draw enemy type indicator
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px "Roboto Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText(enemy.type.charAt(0).toUpperCase(), enemy.x, enemy.y + 3);
         });
+    }
+    
+    checkCollisionsWithServerEnemies(playerX, playerY, playerRadius = 15) {
+        let hitEnemyId = null;
+        
+        this.serverEnemies.forEach(enemy => {
+            const dx = playerX - enemy.x;
+            const dy = playerY - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < (playerRadius + enemy.radius)) {
+                hitEnemyId = enemy.id;
+            }
+        });
+        
+        return hitEnemyId;
     }
     
     showMessage(text) {

@@ -131,7 +131,30 @@ class SimpleLobbyServer {
                     message: message.text
                 });
                 break;
+                
+            case 'enemyKilled':
+                this.handleEnemyKilled(playerId, message.enemyId);
+                break;
         }
+    }
+    
+    handleEnemyKilled(playerId, enemyId) {
+        const player = this.players.get(playerId);
+        if (!player || !player.inLobby) return;
+        
+        // Remove enemy if it exists
+        this.gameState.enemies = this.gameState.enemies.filter(e => e.id !== enemyId);
+        
+        // Add score
+        player.score += 100;
+        
+        // Broadcast score update
+        this.broadcastToLobby({
+            type: 'scoreUpdate',
+            playerId: playerId,
+            score: player.score,
+            enemyId: enemyId
+        });
     }
     
     joinLobby(playerId) {
@@ -322,6 +345,9 @@ class SimpleLobbyServer {
         // Update enemies
         this.updateEnemies(deltaTime);
         
+        // Check collisions
+        this.checkCollisions();
+        
         // Broadcast game state
         this.broadcastGameState();
     }
@@ -351,6 +377,43 @@ class SimpleLobbyServer {
             enemy.x += enemy.velocityX * deltaTime;
             enemy.y += enemy.velocityY * deltaTime;
             return enemy.y < 650 && enemy.x > -50 && enemy.x < 850;
+        });
+    }
+    
+    checkCollisions() {
+        this.lobbyPlayers.forEach(playerId => {
+            const player = this.players.get(playerId);
+            if (!player || player.lives <= 0) return;
+            
+            this.gameState.enemies.forEach(enemy => {
+                const dx = player.x - enemy.x;
+                const dy = player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (15 + enemy.radius)) {
+                    // Player hit!
+                    player.lives -= enemy.damage;
+                    
+                    // Remove enemy
+                    this.gameState.enemies = this.gameState.enemies.filter(e => e.id !== enemy.id);
+                    
+                    // Notify player was hit
+                    this.broadcastToLobby({
+                        type: 'playerHit',
+                        playerId: playerId,
+                        enemyId: enemy.id,
+                        lives: player.lives
+                    });
+                    
+                    // Check if player died
+                    if (player.lives <= 0) {
+                        this.broadcastToLobby({
+                            type: 'playerDied',
+                            playerId: playerId
+                        });
+                    }
+                }
+            });
         });
     }
     
@@ -434,12 +497,24 @@ class SimpleLobbyServer {
     broadcastGameState() {
         if (!this.gameActive || !this.gameState) return;
         
+        // Get current player positions
+        const playerStates = this.getLobbyPlayers().map(player => ({
+            id: player.id,
+            x: player.x,
+            y: player.y,
+            lives: player.lives,
+            score: player.score,
+            color: player.color,
+            name: player.name
+        }));
+        
         this.broadcastToLobby({
             type: 'gameStateUpdate',
             round: this.gameState.round,
             roundTimer: Math.max(0, this.gameState.roundTimer),
             enemies: this.gameState.enemies,
-            level: this.gameState.level
+            level: this.gameState.level,
+            players: playerStates
         });
     }
     
