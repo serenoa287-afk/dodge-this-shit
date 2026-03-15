@@ -93,7 +93,8 @@ class UnifiedMultiplayerClient {
                 <div id="unified-lobby-section" ${this.connected && this.inLobby ? '' : 'style="display: none;"'}>
                     <h3 style="color: #00ffea; margin: 20px 0;">LOBBY (1-4 players)</h3>
                     <div style="margin: 10px 0; color: #aaa;">
-                        <div>Players: <span id="lobby-player-count">0</span>/4</div>
+                        <div>Lobby: <span id="lobby-player-count">0</span>/4 players</div>
+                        <div>Online: <span id="online-player-count">0</span> players connected</div>
                         <div id="game-status" style="margin: 10px 0; padding: 10px; 
                              background: rgba(0, 255, 234, 0.1); border-radius: 8px;">
                             ${this.gameActive ? 'Game in progress' : 'Click "Ready" when everyone is here'}
@@ -273,6 +274,7 @@ class UnifiedMultiplayerClient {
                     this.lobbyPlayers.set(player.id, player);
                 });
                 this.updateLobbyUI();
+                this.updateOnlinePlayerCount(message.onlinePlayers || 1);
                 this.showMessage('Joined lobby!');
                 break;
                 
@@ -287,6 +289,7 @@ class UnifiedMultiplayerClient {
                 });
                 this.showMessage(`${message.playerName} joined the lobby!`);
                 this.updateLobbyUI();
+                this.updateOnlinePlayerCount(message.onlinePlayers);
                 break;
                 
             case 'playerLeft':
@@ -295,6 +298,7 @@ class UnifiedMultiplayerClient {
                     this.showMessage(`${leftPlayer.name} left the lobby`);
                     this.lobbyPlayers.delete(message.playerId);
                     this.updateLobbyUI();
+                    this.updateOnlinePlayerCount(message.onlinePlayers);
                 }
                 break;
                 
@@ -461,6 +465,13 @@ class UnifiedMultiplayerClient {
         
         // Update UI
         this.game.updateUI();
+    }
+    
+    updateOnlinePlayerCount(count) {
+        const onlineCount = document.getElementById('online-player-count');
+        if (onlineCount) {
+            onlineCount.textContent = count;
+        }
     }
     
     updateLobbyUI() {

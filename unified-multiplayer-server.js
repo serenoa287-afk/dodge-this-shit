@@ -89,6 +89,7 @@ class UnifiedMultiplayerServer {
                 
             case 'setReady':
                 player.ready = message.ready;
+                console.log(`Player ${player.name} ready: ${player.ready}`);
                 this.broadcastToLobby({
                     type: 'playerReady',
                     playerId: playerId,
@@ -192,7 +193,8 @@ class UnifiedMultiplayerServer {
             type: 'lobbyJoined',
             players: this.getLobbyPlayers(),
             maxPlayers: this.lobby.maxPlayers,
-            gameActive: this.lobby.gameActive
+            gameActive: this.lobby.gameActive,
+            onlinePlayers: this.getOnlinePlayerCount()
         }));
         
         // Notify other players
@@ -200,7 +202,8 @@ class UnifiedMultiplayerServer {
             type: 'playerJoined',
             playerId: playerId,
             playerName: player.name,
-            playerColor: player.color
+            playerColor: player.color,
+            onlinePlayers: this.getOnlinePlayerCount()
         }, playerId);
         
         console.log(`Player ${player.name} joined lobby (${this.lobby.players.size}/${this.lobby.maxPlayers})`);
@@ -217,7 +220,8 @@ class UnifiedMultiplayerServer {
         // Notify other players
         this.broadcastToLobby({
             type: 'playerLeft',
-            playerId: playerId
+            playerId: playerId,
+            onlinePlayers: this.getOnlinePlayerCount()
         });
         
         console.log(`Player ${player.name} left lobby (${this.lobby.players.size}/${this.lobby.maxPlayers})`);
@@ -237,9 +241,14 @@ class UnifiedMultiplayerServer {
             return player && player.ready;
         });
         
-        if (allReady) {
+        console.log(`Check start game: ${this.lobby.players.size} players, all ready: ${allReady}`);
+        
+        if (allReady && !this.lobby.gameActive) {
+            console.log('All players ready! Starting game countdown...');
+            
             // Auto-start game after 3 seconds
             setTimeout(() => {
+                console.log('Countdown finished, starting game...');
                 this.handleStartGame(Array.from(this.lobby.players)[0]); // First player as host
             }, 3000);
             
@@ -599,6 +608,17 @@ class UnifiedMultiplayerServer {
                 lives: player.lives
             };
         });
+    }
+    
+    getOnlinePlayerCount() {
+        // Count all connected players (including those not in lobby)
+        let count = 0;
+        this.players.forEach(player => {
+            if (player.connected) {
+                count++;
+            }
+        });
+        return count;
     }
     
     broadcastToLobby(message, excludePlayerId = null) {
