@@ -143,13 +143,10 @@ class Game {
     }
     
     startMultiplayer() {
-        // Initialize multiplayer client
-        if (!this.multiplayer) {
-            this.multiplayer = new MultiplayerClient(this);
+        // Initialize simple multiplayer client
+        if (!this.multiplayer && typeof SimpleMultiplayerClient !== 'undefined') {
+            this.multiplayer = new SimpleMultiplayerClient(this);
         }
-        
-        // Show multiplayer screen
-        this.multiplayer.showScreen('multiplayer');
         this.isMultiplayer = true;
     }
     
@@ -222,10 +219,7 @@ class Game {
         
         // Send player position to server in multiplayer
         if (this.isMultiplayer && this.multiplayer && this.gameState === 'playing') {
-            this.multiplayer.sendPlayerMove({
-                x: this.player.x,
-                y: this.player.y
-            });
+            this.multiplayer.sendMove(this.player.x, this.player.y);
         }
         
         // Update round timer
@@ -769,10 +763,8 @@ class Game {
         this.player.draw(this.ctx);
         
         // Draw other players in multiplayer
-        if (this.isMultiplayer && this.multiplayer) {
-            this.multiplayer.otherPlayers.forEach(otherPlayer => {
-                this.drawOtherPlayer(otherPlayer);
-            });
+        if (this.isMultiplayer && this.multiplayer && this.multiplayer.drawOtherPlayers) {
+            this.multiplayer.drawOtherPlayers(this.ctx);
         }
         
         // Draw enemies
