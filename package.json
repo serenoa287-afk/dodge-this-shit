@@ -23,8 +23,7 @@
   ],
   "author": "Serenoa",
   "license": "MIT",
-  "devDependencies": {},
   "dependencies": {
-    "ws": "^8.18.0"
+    "ws": "^8.19.0"
   }
 }
