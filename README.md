@@ -25,30 +25,57 @@ A browser-based JavaScript game inspired by the classic Warcraft 3 custom map "D
 - Sound effects
 - Responsive controls
 
+## Quick Start
+
+### Play Immediately
+```bash
+# Clone the repository
+git clone https://github.com/serenoa287-afk/dodge-this-shit.git
+cd dodge-this-shit
+
+# Start the game server
+npm start
+# Then open http://localhost:3000 in your browser
+```
+
+### Alternative Methods
+```bash
+# Using Docker
+docker-compose up -d
+
+# Using Node.js directly
+node server.js
+
+# On Windows
+start.bat
+
+# On Linux/Mac
+chmod +x start.sh
+./start.sh
+```
+
 ## Development
 
 ### Prerequisites
+- Node.js 14+ (optional, for server)
 - Modern web browser
-- Code editor
-
-### Setup
-1. Clone the repository
-2. Open `index.html` in your browser
-3. Start playing!
 
 ### Project Structure
 ```
 dodge-this-shit-game/
-├── index.html          # Main HTML file
+├── server.js          # Node.js game server
+├── index.html         # Main HTML file
 ├── style.css          # Game styling
 ├── game.js           # Main game logic
 ├── player.js         # Player character class
 ├── enemy.js          # Enemy class and types
 ├── level.js          # Level management
-├── assets/           # Images, sounds, fonts
-│   ├── sprites/
-│   ├── sounds/
-│   └── fonts/
+├── package.json      # Project configuration
+├── Dockerfile        # Docker container
+├── docker-compose.yml # Docker deployment
+├── start.sh          # Linux/Mac start script
+├── start.bat         # Windows start script
+├── DEPLOYMENT.md     # Deployment guide
 └── README.md
 ```
 
