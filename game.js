@@ -232,27 +232,52 @@ class Game {
         // Update enemies
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            enemy.update(this.deltaTime);
+            enemy.update(this.deltaTime, this.player.x, this.player.y);
             
-            // Check collision with player
-            if (this.checkCollision(this.player, enemy)) {
-                this.lives--;
-                this.enemies.splice(i, 1);
-                this.enemyCount--;
+            // Handle chaser explosions
+            if (enemy.type === 'chaser' && enemy.isExploding) {
+                // Check if player is within explosion radius
+                const dx = this.player.x - enemy.x;
+                const dy = this.player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (this.lives <= 0) {
-                    this.gameOver();
+                if (distance < enemy.currentExplosionRadius + this.player.radius) {
+                    this.lives -= enemy.explosionDamage;
+                    
+                    if (this.lives <= 0) {
+                        this.gameOver();
+                    }
+                    
+                    this.updateUI();
                 }
-                
-                this.updateUI();
-                continue;
             }
             
-            // Remove enemies that are out of bounds
-            if (enemy.isOutOfBounds(this.canvas.width, this.canvas.height)) {
+            // Check collision with player (for non-exploding chasers)
+            if (enemy.type !== 'chaser' || !enemy.isExploding) {
+                if (this.checkCollision(this.player, enemy)) {
+                    this.lives--;
+                    this.enemies.splice(i, 1);
+                    this.enemyCount--;
+                    
+                    if (this.lives <= 0) {
+                        this.gameOver();
+                    }
+                    
+                    this.updateUI();
+                    continue;
+                }
+            }
+            
+            // Remove enemies that are out of bounds or finished exploding
+            if (enemy.shouldRemove || enemy.isOutOfBounds(this.canvas.width, this.canvas.height)) {
                 this.enemies.splice(i, 1);
                 this.enemyCount--;
-                this.score += 10; // Bonus for dodging
+                
+                // Only give score for dodging if not a chaser explosion
+                if (!enemy.shouldRemove) {
+                    this.score += 10; // Bonus for dodging
+                }
+                
                 this.updateUI();
             }
         }
@@ -283,36 +308,53 @@ class Game {
             case 'wave':
                 this.spawnWavePattern();
                 break;
+            case 'chaserWave':
+                this.spawnChaserWave();
+                break;
         }
     }
     
     getPatternType(roundProgress) {
         // Pattern distribution changes as round progresses
         const patterns = [
-            { type: 'single', weight: 0.4 },
+            { type: 'single', weight: 0.35 },
             { type: 'row', weight: 0.2 },
             { type: 'column', weight: 0.2 },
             { type: 'staggered', weight: 0.1 },
-            { type: 'wave', weight: 0.1 }
+            { type: 'wave', weight: 0.1 },
+            { type: 'chaserWave', weight: 0.05 }
         ];
         
-        // Adjust weights based on round progress
+        // Adjust weights based on round progress and level
         if (roundProgress > 0.5) {
             // More complex patterns in second half of round
-            patterns[0].weight = 0.2;  // Less single
-            patterns[1].weight = 0.25; // More rows
-            patterns[2].weight = 0.25; // More columns
-            patterns[3].weight = 0.15; // More staggered
-            patterns[4].weight = 0.15; // More waves
+            patterns[0].weight = 0.2;   // Less single
+            patterns[1].weight = 0.2;   // Same rows
+            patterns[2].weight = 0.2;   // Same columns
+            patterns[3].weight = 0.15;  // More staggered
+            patterns[4].weight = 0.15;  // More waves
+            patterns[5].weight = 0.1;   // More chaser waves
         }
         
         if (roundProgress > 0.8) {
             // Intense patterns near end of round
             patterns[0].weight = 0.1;
-            patterns[1].weight = 0.3;
-            patterns[2].weight = 0.3;
+            patterns[1].weight = 0.25;
+            patterns[2].weight = 0.25;
             patterns[3].weight = 0.15;
             patterns[4].weight = 0.15;
+            patterns[5].weight = 0.1;
+        }
+        
+        // More chaser waves at higher levels
+        if (this.level > 5) {
+            patterns[5].weight += 0.05;
+            patterns[0].weight -= 0.05;
+        }
+        
+        if (this.level > 10) {
+            patterns[5].weight += 0.05;
+            patterns[0].weight -= 0.05;
         }
         
         const random = Math.random();
@@ -334,27 +376,58 @@ class Game {
         
         const speed = 0.1 + (this.level * 0.02); // Speed increases with level
         
-        switch(side) {
-            case 0: // Top
-                x = Math.random() * this.canvas.width;
-                y = -50;
-                velocity = { x: 0, y: speed };
-                break;
-            case 1: // Right
-                x = this.canvas.width + 50;
-                y = Math.random() * this.canvas.height;
-                velocity = { x: -speed, y: 0 };
-                break;
-            case 2: // Bottom
-                x = Math.random() * this.canvas.width;
-                y = this.canvas.height + 50;
-                velocity = { x: 0, y: -speed };
-                break;
-            case 3: // Left
-                x = -50;
-                y = Math.random() * this.canvas.height;
-                velocity = { x: speed, y: 0 };
-                break;
+        // 30% chance to spawn a chaser from diagonal corners
+        const spawnChaser = Math.random() < 0.3 && this.level > 2;
+        
+        if (spawnChaser) {
+            // Spawn chaser from one of the four corners
+            const corner = Math.floor(Math.random() * 4);
+            switch(corner) {
+                case 0: // Top-left
+                    x = -50;
+                    y = -50;
+                    velocity = { x: speed * 0.7, y: speed * 0.7 }; // Diagonal down-right
+                    break;
+                case 1: // Top-right
+                    x = this.canvas.width + 50;
+                    y = -50;
+                    velocity = { x: -speed * 0.7, y: speed * 0.7 }; // Diagonal down-left
+                    break;
+                case 2: // Bottom-left
+                    x = -50;
+                    y = this.canvas.height + 50;
+                    velocity = { x: speed * 0.7, y: -speed * 0.7 }; // Diagonal up-right
+                    break;
+                case 3: // Bottom-right
+                    x = this.canvas.width + 50;
+                    y = this.canvas.height + 50;
+                    velocity = { x: -speed * 0.7, y: -speed * 0.7 }; // Diagonal up-left
+                    break;
+            }
+        } else {
+            // Regular enemy spawn
+            switch(side) {
+                case 0: // Top
+                    x = Math.random() * this.canvas.width;
+                    y = -50;
+                    velocity = { x: 0, y: speed };
+                    break;
+                case 1: // Right
+                    x = this.canvas.width + 50;
+                    y = Math.random() * this.canvas.height;
+                    velocity = { x: -speed, y: 0 };
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * this.canvas.width;
+                    y = this.canvas.height + 50;
+                    velocity = { x: 0, y: -speed };
+                    break;
+                case 3: // Left
+                    x = -50;
+                    y = Math.random() * this.canvas.height;
+                    velocity = { x: speed, y: 0 };
+                    break;
+            }
         }
         
         const enemy = new Enemy(x, y, velocity, this.level);
@@ -487,6 +560,49 @@ class Game {
             // Small delay between patterns in the wave
             this.enemySpawnTimer = -500 * (i + 1);
         }
+    }
+    
+    spawnChaserWave() {
+        const speed = 0.08 + (this.level * 0.015);
+        
+        // Spawn 3-5 chasers from different corners
+        const count = 3 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < count; i++) {
+            let x, y, velocity;
+            
+            // Each chaser from a different corner
+            switch(i % 4) {
+                case 0: // Top-left
+                    x = -50 - (i * 20);
+                    y = -50 - (i * 20);
+                    velocity = { x: speed * 0.6, y: speed * 0.6 };
+                    break;
+                case 1: // Top-right
+                    x = this.canvas.width + 50 + (i * 20);
+                    y = -50 - (i * 20);
+                    velocity = { x: -speed * 0.6, y: speed * 0.6 };
+                    break;
+                case 2: // Bottom-left
+                    x = -50 - (i * 20);
+                    y = this.canvas.height + 50 + (i * 20);
+                    velocity = { x: speed * 0.6, y: -speed * 0.6 };
+                    break;
+                case 3: // Bottom-right
+                    x = this.canvas.width + 50 + (i * 20);
+                    y = this.canvas.height + 50 + (i * 20);
+                    velocity = { x: -speed * 0.6, y: -speed * 0.6 };
+                    break;
+            }
+            
+            const enemy = new Enemy(x, y, velocity, this.level);
+            // Stagger their chase timers slightly
+            enemy.chaseDuration += i * 500;
+            this.enemies.push(enemy);
+            this.enemyCount++;
+        }
+        
+        this.updateUI();
     }
     
     checkCollision(circle1, circle2) {
