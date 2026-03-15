@@ -750,6 +750,14 @@ class Game {
     }
     
     gameOver() {
+        // In multiplayer, don't show game over screen immediately
+        // Players might be revived next round
+        if (this.isMultiplayer && this.multiplayer) {
+            // Just update UI, keep playing as spectator
+            this.updateUI();
+            return;
+        }
+        
         this.gameState = 'gameover';
         document.getElementById('final-score').textContent = this.score;
         document.getElementById('final-level').textContent = this.level;

@@ -466,8 +466,12 @@ class SyncMultiplayerServer {
                     if (player.lives <= 0) {
                         this.broadcastToRoom(room.id, {
                             type: 'playerDied',
-                            playerId: playerId
+                            playerId: playerId,
+                            canRevive: room.gameState.round < 10 // Can revive if not last round
                         });
+                        
+                        // Player becomes a spectator for current round
+                        console.log(`Player ${player.name} died in round ${room.gameState.round}`);
                     }
                 }
             });
@@ -507,32 +511,68 @@ class SyncMultiplayerServer {
     }
     
     endRound(room) {
-        room.gameState.round++;
-        room.gameState.level = room.gameState.round;
+        const currentRound = room.gameState.round;
+        const nextRound = currentRound + 1;
+        
+        room.gameState.round = nextRound;
+        room.gameState.level = nextRound;
         room.gameState.roundTimer = this.ROUND_DURATION;
         room.gameState.enemies = [];
         
         // Add round bonus to all alive players
         room.players.forEach(playerId => {
             const player = this.players.get(playerId);
-            if (player && player.lives > 0) {
-                const roundBonus = 500 * room.gameState.round;
+            if (player) {
+                const roundBonus = 500 * currentRound;
                 player.score += roundBonus;
                 room.gameState.scores.set(playerId, player.score);
             }
         });
         
-        // Broadcast round end
+        // Revive dead players for next round
+        const revivedPlayers = [];
+        room.players.forEach(playerId => {
+            const player = this.players.get(playerId);
+            if (player && player.lives <= 0) {
+                // Revive player with full lives
+                player.lives = 3;
+                room.gameState.lives.set(playerId, 3);
+                revivedPlayers.push(playerId);
+                
+                // Reset player position to center
+                player.x = 400;
+                player.y = 300;
+            }
+        });
+        
+        // Broadcast round end with revival info
         this.broadcastToRoom(room.id, {
             type: 'roundEnded',
-            round: room.gameState.round - 1,
-            nextRound: room.gameState.round,
+            round: currentRound,
+            nextRound: nextRound,
             roundTimer: this.ROUND_DURATION,
-            scores: Array.from(room.gameState.scores.entries())
+            scores: Array.from(room.gameState.scores.entries()),
+            revivedPlayers: revivedPlayers,
+            revivalMessage: revivedPlayers.length > 0 ? 
+                `${revivedPlayers.length} player(s) revived for next round!` : null
+        });
+        
+        // If players were revived, broadcast their new positions
+        revivedPlayers.forEach(playerId => {
+            const player = this.players.get(playerId);
+            if (player) {
+                this.broadcastToRoom(room.id, {
+                    type: 'playerRevived',
+                    playerId: playerId,
+                    x: player.x,
+                    y: player.y,
+                    lives: player.lives
+                });
+            }
         });
         
         // Check if game over (10 rounds)
-        if (room.gameState.round > 10) {
+        if (nextRound > 10) {
             this.endGame(room);
         }
     }

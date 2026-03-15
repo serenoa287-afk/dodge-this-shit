@@ -302,11 +302,19 @@ class SyncMultiplayerClient {
                 
             case 'playerDied':
                 if (message.playerId === this.playerId) {
-                    this.showMessage('You died! Waiting for next round...');
+                    if (message.canRevive) {
+                        this.showMessage('You died! You will be revived next round.');
+                    } else {
+                        this.showMessage('You died in the final round! Game over.');
+                    }
                 } else {
                     const deadPlayer = this.roomPlayers.get(message.playerId);
                     if (deadPlayer) {
-                        this.showMessage(`${deadPlayer.name} died!`);
+                        if (message.canRevive) {
+                            this.showMessage(`${deadPlayer.name} died! Will revive next round.`);
+                        } else {
+                            this.showMessage(`${deadPlayer.name} died in final round!`);
+                        }
                     }
                 }
                 break;
@@ -321,7 +329,35 @@ class SyncMultiplayerClient {
             case 'roundEnded':
                 this.serverRound = message.nextRound;
                 this.serverRoundTimer = message.roundTimer;
-                this.showMessage(`Round ${message.round} complete! Starting round ${message.nextRound}`);
+                
+                // Show revival message if players were revived
+                if (message.revivalMessage) {
+                    this.showMessage(`Round ${message.round} complete! ${message.revivalMessage}`);
+                } else {
+                    this.showMessage(`Round ${message.round} complete! Starting round ${message.nextRound}`);
+                }
+                
+                // Update revived players' lives
+                if (message.revivedPlayers && message.revivedPlayers.includes(this.playerId)) {
+                    // Local player was revived
+                    this.game.lives = 3;
+                    this.game.updateUI();
+                    this.showMessage('You have been revived!');
+                }
+                break;
+                
+            case 'playerRevived':
+                // Update revived player's state
+                const revivedPlayer = this.roomPlayers.get(message.playerId);
+                if (revivedPlayer) {
+                    revivedPlayer.lives = message.lives;
+                    revivedPlayer.x = message.x;
+                    revivedPlayer.y = message.y;
+                    
+                    if (message.playerId !== this.playerId) {
+                        this.showMessage(`${revivedPlayer.name} has been revived!`);
+                    }
+                }
                 break;
                 
             case 'gameEnded':
@@ -560,27 +596,30 @@ class SyncMultiplayerClient {
     drawOtherPlayers(ctx) {
         this.roomPlayers.forEach(player => {
             if (player.id !== this.playerId && player.x && player.y) {
-                // Draw other player
-                ctx.fillStyle = player.color;
+                const isDead = player.lives <= 0;
+                
+                // Draw other player with different style if dead
+                ctx.fillStyle = isDead ? `${player.color}80` : player.color; // 50% opacity if dead
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Draw outline
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = isDead ? '#888888' : '#ffffff';
+                ctx.lineWidth = isDead ? 1 : 2;
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
                 ctx.stroke();
                 
                 // Draw name and score
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = isDead ? '#888888' : '#ffffff';
                 ctx.font = '12px "Roboto Mono"';
                 ctx.textAlign = 'center';
-                ctx.fillText(`${player.name} (${player.score})`, player.x, player.y - 25);
+                const statusText = isDead ? '💀 SPECTATING' : `(${player.score})`;
+                ctx.fillText(`${player.name} ${statusText}`, player.x, player.y - 25);
                 
-                // Draw lives
-                if (player.lives > 0) {
+                // Draw lives (only if alive)
+                if (!isDead) {
                     ctx.fillStyle = '#ff0000';
                     for (let i = 0; i < player.lives; i++) {
                         ctx.beginPath();
@@ -589,12 +628,20 @@ class SyncMultiplayerClient {
                     }
                 }
                 
-                // Draw ready indicator
+                // Draw ready indicator (only if not in game)
                 if (player.ready && !this.gameActive) {
                     ctx.fillStyle = '#00ff00';
                     ctx.beginPath();
                     ctx.arc(player.x, player.y + 40, 5, 0, Math.PI * 2);
                     ctx.fill();
+                }
+                
+                // Draw revival countdown if dead and not final round
+                if (isDead && this.gameActive && this.serverRound < 10) {
+                    ctx.fillStyle = '#ffff00';
+                    ctx.font = '10px "Roboto Mono"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Revives round ${this.serverRound + 1}`, player.x, player.y + 40);
                 }
             }
         });
