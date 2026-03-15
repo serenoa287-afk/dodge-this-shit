@@ -1,4 +1,4 @@
-/* Reset and base styles */
+/* Agar.io Style - Paper-like UI */
 * {
     margin: 0;
     padding: 0;
@@ -6,55 +6,86 @@
 }
 
 body {
-    font-family: 'Roboto Mono', monospace;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #f0f0f0;
+    color: #333;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(120, 119, 198, 0.1) 0%, transparent 55%),
+        radial-gradient(circle at 75% 75%, rgba(255, 119, 198, 0.1) 0%, transparent 55%);
 }
 
+/* Paper-like container */
 .container {
     max-width: 1200px;
     width: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 20px;
+    background: white;
+    border-radius: 12px;
     padding: 30px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 2px solid #00ffea;
+    box-shadow: 
+        0 2px 10px rgba(0, 0, 0, 0.1),
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
-/* Header */
+/* Subtle paper texture */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(90deg, transparent 79px, #abced4 79px, #abced4 81px, transparent 81px),
+        linear-gradient(#eee .1em, transparent .1em);
+    background-size: 100% 1.2em;
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Header - Agar.io style */
 header {
     text-align: center;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 3px solid #00ffea;
+    border-bottom: 2px solid #e0e0e0;
+    position: relative;
+    z-index: 1;
 }
 
 h1 {
-    font-family: 'Press Start 2P', cursive;
-    font-size: 3rem;
-    color: #00ffea;
-    text-shadow: 0 0 10px #00ffea, 0 0 20px #00ffea;
-    margin-bottom: 10px;
-    letter-spacing: 2px;
+    font-family: 'Arial Black', sans-serif;
+    font-size: 3.5rem;
+    color: #333;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    color: #aaa;
-    font-style: italic;
+    font-size: 1.1rem;
+    color: #666;
+    font-weight: 300;
+    letter-spacing: 1px;
 }
 
-/* Game container */
+/* Game container - clean grid */
 .game-container {
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
     gap: 30px;
     margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
 }
 
 @media (max-width: 1024px) {
@@ -63,7 +94,7 @@ h1 {
     }
 }
 
-/* Game info */
+/* Game info - clean cards */
 .game-info {
     display: flex;
     flex-direction: column;
@@ -71,33 +102,40 @@ h1 {
 }
 
 .stats {
-    background: rgba(0, 255, 234, 0.1);
-    border: 2px solid #00ffea;
-    border-radius: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
     padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .stat {
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .stat:last-child {
     margin-bottom: 0;
+    border-bottom: none;
 }
 
 .stat-label {
-    color: #aaa;
+    color: #666;
+    font-weight: 500;
 }
 
 .stat-value {
-    font-family: 'Press Start 2P', cursive;
-    color: #00ffea;
-    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    color: #333;
+    font-weight: 600;
+    font-size: 1.1rem;
 }
 
+/* Controls - Agar.io style buttons */
 .controls {
     display: flex;
     flex-direction: column;
@@ -105,65 +143,75 @@ h1 {
 }
 
 .btn {
-    padding: 15px;
+    padding: 14px 20px;
     border: none;
-    border-radius: 8px;
-    font-family: 'Press Start 2P', cursive;
-    font-size: 0.9rem;
+    border-radius: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    transition: all 0.2s ease;
+    text-align: center;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #00ffea, #0088ff);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
 }
 
 .btn-secondary {
-    background: linear-gradient(45deg, #ff6b6b, #ffa500);
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: white;
 }
 
 .btn-danger {
-    background: linear-gradient(45deg, #ff0000, #ff6b6b);
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: white;
 }
 
-/* Game area */
+/* Game area - clean canvas */
 .game-area {
     position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
 }
 
 #game-canvas {
     background: #000;
-    border: 4px solid #00ffea;
-    border-radius: 10px;
+    display: block;
     width: 100%;
     height: auto;
-    display: block;
 }
 
+/* Overlays - clean paper overlays */
 .overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-radius: 10px;
     padding: 40px;
     text-align: center;
+    backdrop-filter: blur(2px);
 }
 
 #start-screen {
@@ -175,23 +223,31 @@ h1 {
 }
 
 .overlay h2 {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'Arial Black', sans-serif;
     font-size: 2.5rem;
-    color: #00ffea;
+    color: #333;
     margin-bottom: 30px;
-    text-shadow: 0 0 10px #00ffea;
+    letter-spacing: -0.5px;
 }
 
+/* Instructions - clean typography */
 .instructions {
     max-width: 600px;
     margin: 30px 0;
     text-align: left;
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
 .instructions h3 {
-    color: #00ffea;
-    margin-bottom: 15px;
+    color: #333;
+    margin-bottom: 20px;
     font-size: 1.3rem;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
 }
 
 .instructions ul {
@@ -200,40 +256,47 @@ h1 {
 }
 
 .instructions li {
-    margin-bottom: 10px;
-    padding-left: 20px;
+    margin-bottom: 12px;
+    padding-left: 24px;
     position: relative;
+    line-height: 1.5;
 }
 
 .instructions li:before {
-    content: "▶";
-    color: #00ffea;
+    content: "•";
+    color: #667eea;
     position: absolute;
     left: 0;
+    font-size: 1.5rem;
+    line-height: 1;
 }
 
 .tip {
-    background: rgba(0, 255, 234, 0.1);
-    border-left: 4px solid #00ffea;
-    padding: 15px;
-    border-radius: 0 8px 8px 0;
+    background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    border-left: 4px solid #667eea;
+    padding: 18px;
+    border-radius: 0 6px 6px 0;
     font-style: italic;
+    color: #555;
     margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 /* Instructions panel */
 .instructions-panel {
-    background: rgba(0, 255, 234, 0.1);
-    border: 2px solid #00ffea;
-    border-radius: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
     padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .instructions-panel h3 {
-    color: #00ffea;
+    color: #333;
     margin-bottom: 20px;
     font-size: 1.3rem;
-    border-bottom: 2px solid #00ffea;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
     padding-bottom: 10px;
 }
 
@@ -242,19 +305,29 @@ h1 {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    background: white;
     border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+}
+
+.control-item:hover {
+    background: #f0f0f0;
+    transform: translateX(2px);
 }
 
 .key {
-    background: #000;
-    color: #00ffea;
-    padding: 5px 10px;
+    background: #333;
+    color: white;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-family: 'Press Start 2P', cursive;
-    font-size: 0.8rem;
-    border: 1px solid #00ffea;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .level-info {
@@ -267,24 +340,27 @@ h1 {
     padding-left: 20px;
     position: relative;
     font-size: 0.9rem;
-    color: #ccc;
+    color: #666;
+    line-height: 1.4;
 }
 
 .level-info li:before {
-    content: "•";
-    color: #00ffea;
+    content: "→";
+    color: #667eea;
     position: absolute;
     left: 0;
-    font-size: 1.2rem;
+    font-weight: bold;
 }
 
 /* Footer */
 footer {
     text-align: center;
     padding-top: 20px;
-    border-top: 2px solid #00ffea;
-    color: #aaa;
+    border-top: 2px solid #e0e0e0;
+    color: #666;
     font-size: 0.9rem;
+    position: relative;
+    z-index: 1;
 }
 
 .github-link {
@@ -292,20 +368,45 @@ footer {
 }
 
 .github-link a {
-    color: #00ffea;
+    color: #667eea;
     text-decoration: none;
-    transition: color 0.3s ease;
+    font-weight: 600;
+    transition: color 0.2s ease;
 }
 
 .github-link a:hover {
-    color: #fff;
+    color: #764ba2;
     text-decoration: underline;
+}
+
+/* Start screen buttons - Agar.io style */
+.start-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+    max-width: 400px;
+    width: 100%;
+}
+
+#single-player-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 1.2rem;
+    padding: 18px;
+}
+
+#multiplayer-lobby-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-size: 1.2rem;
+    padding: 18px;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
     h1 {
-        font-size: 2rem;
+        font-size: 2.5rem;
     }
     
     .game-container {
@@ -313,22 +414,26 @@ footer {
     }
     
     .overlay h2 {
-        font-size: 1.8rem;
+        font-size: 2rem;
     }
     
     .btn {
-        padding: 12px;
-        font-size: 0.8rem;
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+    
+    .start-buttons {
+        max-width: 300px;
     }
 }
 
 @media (max-width: 480px) {
     .container {
-        padding: 15px;
+        padding: 20px;
     }
     
     h1 {
-        font-size: 1.5rem;
+        font-size: 2rem;
     }
     
     .stat {
@@ -336,6 +441,72 @@ footer {
     }
     
     .stat-value {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
+    
+    .instructions {
+        padding: 20px;
+    }
+    
+    .overlay {
+        padding: 20px;
+    }
+}
+
+/* Paper fold effect */
+.container::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 60px 60px 0;
+    border-color: transparent #667eea transparent transparent;
+    box-shadow: -2px 2px 3px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+/* Subtle animation for buttons */
+@keyframes subtlePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+#single-player-btn:hover, 
+#multiplayer-lobby-btn:hover {
+    animation: subtlePulse 0.6s ease;
+}
+
+/* Game canvas border */
+#game-canvas {
+    border: none;
+    outline: 2px solid #e0e0e0;
+    outline-offset: -2px;
+}
+
+/* Score highlight */
+#score {
+    color: #667eea;
+    font-weight: 700;
+}
+
+/* Lives highlight */
+#lives {
+    color: #f5576c;
+    font-weight: 700;
+}
+
+/* Level highlight */
+#level {
+    color: #764ba2;
+    font-weight: 700;
+}
+
+/* Round timer highlight */
+#round-timer {
+    color: #333;
+    font-weight: 700;
 }
