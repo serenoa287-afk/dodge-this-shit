@@ -143,9 +143,9 @@ class Game {
     }
     
     startMultiplayer() {
-        // Initialize simple multiplayer client
-        if (!this.multiplayer && typeof SimpleMultiplayerClient !== 'undefined') {
-            this.multiplayer = new SimpleMultiplayerClient(this);
+        // Use room multiplayer client if available
+        if (!this.multiplayer && typeof RoomMultiplayerClient !== 'undefined') {
+            this.multiplayer = new RoomMultiplayerClient(this);
         }
         this.isMultiplayer = true;
     }

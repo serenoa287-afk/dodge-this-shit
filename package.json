@@ -8,8 +8,8 @@
     "dev": "node server.js",
     "serve": "node server.js",
     "single": "node server.js",
-    "multiplayer": "node simple-multiplayer-server.js",
-    "both": "concurrently \"node server.js\" \"node simple-multiplayer-server.js\"",
+    "multiplayer": "node room-multiplayer-server.js",
+    "both": "concurrently \"node server.js\" \"node room-multiplayer-server.js\"",
     "test": "echo \"No tests yet\" && exit 0"
   },
   "keywords": [
