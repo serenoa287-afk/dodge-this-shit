@@ -40,7 +40,8 @@ class Game {
         this.pauseBtn = document.getElementById('pause-btn');
         this.resetBtn = document.getElementById('reset-btn');
         this.restartBtn = document.getElementById('restart-btn');
-        this.startScreenBtn = document.getElementById('start-screen-btn');
+        this.singlePlayerBtn = document.getElementById('single-player-btn');
+        this.multiplayerLobbyBtn = document.getElementById('multiplayer-lobby-btn');
         this.gameOverScreen = document.getElementById('game-over');
         this.startScreen = document.getElementById('start-screen');
         
@@ -119,7 +120,14 @@ class Game {
         this.pauseBtn.addEventListener('click', () => this.togglePause());
         this.resetBtn.addEventListener('click', () => this.resetGame());
         this.restartBtn.addEventListener('click', () => this.restartGame());
-        this.startScreenBtn.addEventListener('click', () => this.startGame());
+        this.singlePlayerBtn.addEventListener('click', () => {
+            this.isMultiplayer = false;
+            this.startGame();
+        });
+        
+        this.multiplayerLobbyBtn.addEventListener('click', () => {
+            this.startMultiplayer();
+        });
         
         // GitHub link
         // GitHub link
@@ -143,9 +151,9 @@ class Game {
     }
     
     startMultiplayer() {
-        // Use sync multiplayer client if available
-        if (!this.multiplayer && typeof SyncMultiplayerClient !== 'undefined') {
-            this.multiplayer = new SyncMultiplayerClient(this);
+        // Use unified multiplayer client if available
+        if (!this.multiplayer && typeof UnifiedMultiplayerClient !== 'undefined') {
+            this.multiplayer = new UnifiedMultiplayerClient(this);
         }
         this.isMultiplayer = true;
         this.useServerEnemies = false; // Default to local enemies
