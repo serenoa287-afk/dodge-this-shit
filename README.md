@@ -91,7 +91,8 @@ dodge-this-shit-game/
 
 ## Credits
 
-Inspired by the Warcraft 3 custom map "Dodge This Shit".
+**Author**: Serenoa  
+**Inspired by**: The Warcraft 3 custom map "Dodge This Shit"
 
 ## License
 

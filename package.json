@@ -1,12 +1,14 @@
 {
   "name": "dodge-this-shit-game",
-  "version": "1.0.0",
-  "description": "Browser JavaScript game similar to Warcraft 3 custom map Dodge This Shit",
+  "version": "2.0.0",
+  "description": "Browser JavaScript game similar to Warcraft 3 custom map Dodge This Shit - now with multiplayer and progressive difficulty",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "serve": "node server.js",
+    "start": "node combined-server.js",
+    "dev": "node combined-server.js",
+    "serve": "node combined-server.js",
+    "single": "node server.js",
+    "multiplayer": "node multiplayer-server.js",
     "test": "echo \"No tests yet\" && exit 0"
   },
   "keywords": [
@@ -15,10 +17,14 @@
     "browser",
     "warcraft3",
     "dodge",
-    "arena"
+    "arena",
+    "multiplayer",
+    "websocket"
   ],
-  "author": "Angus",
+  "author": "Serenoa",
   "license": "MIT",
   "devDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
 }
