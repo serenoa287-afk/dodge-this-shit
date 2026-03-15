@@ -23,32 +23,40 @@ class Enemy {
     }
     
     determineType() {
-        const types = ['basic', 'fast', 'tank', 'splitter', 'chaser'];
-        const weights = [0.4, 0.25, 0.15, 0.05, 0.15]; // Probabilities
+        const types = ['basic', 'fast', 'tank', 'splitter', 'chaser', 'stalker'];
+        let weights = [0, 0, 0, 0, 0, 0]; // All start at 0
         
-        // Adjust weights based on level
-        if (this.level > 3) {
-            weights[0] = 0.3; // Less basic
-            weights[1] = 0.3; // More fast
-            weights[2] = 0.15; // Same tank
-            weights[3] = 0.1; // More splitter
-            weights[4] = 0.15; // Same chaser
-        }
-        
-        if (this.level > 7) {
-            weights[0] = 0.2;
-            weights[1] = 0.25;
-            weights[2] = 0.2;
-            weights[3] = 0.15;
-            weights[4] = 0.2; // More chasers at higher levels
-        }
-        
-        if (this.level > 12) {
-            weights[0] = 0.15;
-            weights[1] = 0.2;
-            weights[2] = 0.2;
-            weights[3] = 0.2;
-            weights[4] = 0.25; // Even more chasers
+        // Progressive enemy unlocking based on level
+        if (this.level === 1) {
+            // Level 1: Only basic enemies
+            weights = [1.0, 0, 0, 0, 0, 0];
+        } else if (this.level === 2) {
+            // Level 2: Basic + occasional fast
+            weights = [0.8, 0.2, 0, 0, 0, 0];
+        } else if (this.level === 3) {
+            // Level 3: Basic, fast, occasional chaser
+            weights = [0.6, 0.3, 0, 0, 0.1, 0];
+        } else if (this.level === 4) {
+            // Level 4: More variety
+            weights = [0.5, 0.3, 0.1, 0, 0.1, 0];
+        } else if (this.level === 5) {
+            // Level 5: Introduce splitter
+            weights = [0.4, 0.3, 0.1, 0.1, 0.1, 0];
+        } else if (this.level === 6) {
+            // Level 6: More chasers
+            weights = [0.3, 0.3, 0.1, 0.1, 0.2, 0];
+        } else if (this.level === 7) {
+            // Level 7: Introduce stalker
+            weights = [0.2, 0.25, 0.15, 0.1, 0.2, 0.1];
+        } else if (this.level === 8) {
+            // Level 8: More stalkers
+            weights = [0.15, 0.2, 0.15, 0.1, 0.2, 0.2];
+        } else if (this.level === 9) {
+            // Level 9: Intense mix
+            weights = [0.1, 0.15, 0.15, 0.15, 0.25, 0.2];
+        } else if (this.level >= 10) {
+            // Level 10: Final boss level - all types
+            weights = [0.05, 0.1, 0.2, 0.2, 0.25, 0.2];
         }
         
         const random = Math.random();
@@ -105,6 +113,23 @@ class Enemy {
                 this.explosionDuration = 500; // 0.5 second explosion
                 this.homingStrength = 0.05 + (this.level * 0.005); // How strongly it follows player
                 break;
+            case 'stalker':
+                this.radius = 11 + Math.random() * 5;
+                this.speedMultiplier = 1.1;
+                this.health = 1;
+                this.behavior = 'stalk';
+                this.stalkPhase = 'chase'; // chase -> pause -> explode
+                this.stalkTimer = 0;
+                this.chaseDuration = 2000 + Math.random() * 1500; // 2-3.5 seconds chase
+                this.pauseDuration = 1000 + Math.random() * 1000; // 1-2 seconds pause
+                this.explosionRadius = 100 + (this.level * 8);
+                this.explosionDamage = 2;
+                this.isExploding = false;
+                this.explosionTimer = 0;
+                this.explosionDuration = 600; // 0.6 second explosion
+                this.homingStrength = 0.04 + (this.level * 0.004);
+                this.pauseTimer = 0;
+                break;
         }
         
         // Scale with level
@@ -126,6 +151,10 @@ class Enemy {
             case 'tank': return '#8b0000';
             case 'splitter': return '#9400d3';
             case 'chaser': return this.isExploding ? '#ff0000' : '#00ff00';
+            case 'stalker': 
+                if (this.isExploding) return '#ff0000';
+                if (this.stalkPhase === 'pause') return '#ffff00';
+                return '#ff00ff'; // Magenta while chasing
             default: return '#ff6b6b';
         }
     }
@@ -143,6 +172,14 @@ class Enemy {
                     return 'rgba(255, 255, 0, 0.6)'; // Yellow when about to explode
                 } else {
                     return 'rgba(0, 255, 0, 0.5)';
+                }
+            case 'stalker':
+                if (this.isExploding) {
+                    return 'rgba(255, 0, 0, 0.7)';
+                } else if (this.stalkPhase === 'pause') {
+                    return 'rgba(255, 255, 0, 0.7)'; // Yellow when paused
+                } else {
+                    return 'rgba(255, 0, 255, 0.5)'; // Magenta while chasing
                 }
             default: return 'rgba(255, 107, 107, 0.5)';
         }
@@ -164,6 +201,8 @@ class Enemy {
             this.updateChaserBehavior(deltaTime, playerX, playerY);
         } else if (this.type === 'chaser' && this.isExploding) {
             this.updateExplosion(deltaTime);
+        } else if (this.type === 'stalker' && playerX !== null && playerY !== null) {
+            this.updateStalkerBehavior(deltaTime, playerX, playerY);
         } else {
             // Standard movement for other enemies
             this.x += this.velocity.x * this.speedMultiplier * deltaTime;
@@ -233,6 +272,67 @@ class Enemy {
         }
     }
     
+    updateStalkerBehavior(deltaTime, playerX, playerY) {
+        this.stalkTimer += deltaTime;
+        
+        switch(this.stalkPhase) {
+            case 'chase':
+                // Chase the player
+                const dx = playerX - this.x;
+                const dy = playerY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    // Normalize direction and apply homing
+                    const targetVelX = (dx / distance) * 0.08;
+                    const targetVelY = (dy / distance) * 0.08;
+                    
+                    this.velocity.x += (targetVelX - this.velocity.x) * this.homingStrength;
+                    this.velocity.y += (targetVelY - this.velocity.y) * this.homingStrength;
+                    
+                    // Normalize velocity
+                    const currentSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    if (currentSpeed > 0) {
+                        this.velocity.x = (this.velocity.x / currentSpeed) * 0.08;
+                        this.velocity.y = (this.velocity.y / currentSpeed) * 0.08;
+                    }
+                }
+                
+                // Move stalker
+                this.x += this.velocity.x * this.speedMultiplier * deltaTime;
+                this.y += this.velocity.y * this.speedMultiplier * deltaTime;
+                
+                // Check if chase phase is over
+                if (this.stalkTimer >= this.chaseDuration) {
+                    this.stalkPhase = 'pause';
+                    this.stalkTimer = 0;
+                    this.pauseTimer = 0;
+                    // Stop movement during pause
+                    this.velocity.x = 0;
+                    this.velocity.y = 0;
+                }
+                break;
+                
+            case 'pause':
+                // Pause for a couple seconds
+                this.pauseTimer += deltaTime;
+                
+                // Check if pause phase is over
+                if (this.pauseTimer >= this.pauseDuration) {
+                    this.stalkPhase = 'explode';
+                    this.stalkTimer = 0;
+                    this.isExploding = true;
+                    this.explosionTimer = 0;
+                }
+                break;
+                
+            case 'explode':
+                // Handle explosion
+                this.updateExplosion(deltaTime);
+                break;
+        }
+    }
+    
     updateFastEnemyHoming(deltaTime, playerX, playerY) {
         // Fast enemies have slight homing
         const dx = playerX - this.x;
@@ -261,8 +361,8 @@ class Enemy {
             return;
         }
         
-        // Draw explosion effect for chasers
-        if (this.type === 'chaser' && this.isExploding) {
+        // Draw explosion effect for chasers and stalkers
+        if ((this.type === 'chaser' || this.type === 'stalker') && this.isExploding) {
             this.drawExplosion(ctx);
             return;
         }
@@ -294,6 +394,9 @@ class Enemy {
                 break;
             case 'chaser':
                 this.drawChaser(ctx);
+                break;
+            case 'stalker':
+                this.drawStalker(ctx);
                 break;
         }
         
@@ -519,6 +622,51 @@ class Enemy {
             ctx.fillStyle = '#ffff00';
             ctx.beginPath();
             ctx.arc(indicatorX, indicatorY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    drawStalker(ctx) {
+        // Square shape for stalkers
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+        
+        // Inner square
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-this.radius * 0.6, -this.radius * 0.6, this.radius * 1.2, this.radius * 1.2);
+        
+        // Phase indicator
+        if (this.stalkPhase === 'pause') {
+            // Draw pause timer
+            const pauseProgress = this.pauseTimer / this.pauseDuration;
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius + 10, -Math.PI/2, (-Math.PI/2) + (pauseProgress * Math.PI * 2));
+            ctx.stroke();
+            
+            // Draw exclamation mark when about to explode
+            if (pauseProgress > 0.7) {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(-2, -this.radius * 0.8, 4, this.radius * 1.2);
+                ctx.fillRect(-2, this.radius * 0.4, 4, this.radius * 0.4);
+            }
+        } else if (this.stalkPhase === 'chase') {
+            // Draw chase timer
+            const chaseProgress = this.stalkTimer / this.chaseDuration;
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius + 10, -Math.PI/2, (-Math.PI/2) + (chaseProgress * Math.PI * 2));
+            ctx.stroke();
+            
+            // Draw eyes
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.4, -this.radius * 0.3, this.radius * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.radius * 0.4, -this.radius * 0.3, this.radius * 0.2, 0, Math.PI * 2);
             ctx.fill();
         }
     }

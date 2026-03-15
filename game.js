@@ -44,6 +44,18 @@ class Game {
         this.gameOverScreen = document.getElementById('game-over');
         this.startScreen = document.getElementById('start-screen');
         
+        // Multiplayer button
+        this.multiplayerBtn = document.createElement('button');
+        this.multiplayerBtn.id = 'multiplayer-btn';
+        this.multiplayerBtn.className = 'btn btn-primary';
+        this.multiplayerBtn.textContent = 'Online Multiplayer';
+        
+        // Add multiplayer button to start screen
+        const startScreenControls = this.startScreen.querySelector('.instructions');
+        if (startScreenControls) {
+            startScreenControls.appendChild(this.multiplayerBtn);
+        }
+        
         this.init();
     }
     
@@ -110,26 +122,15 @@ class Game {
         this.startScreenBtn.addEventListener('click', () => this.startGame());
         
         // GitHub link
+        // GitHub link
         document.getElementById('github-link').addEventListener('click', (e) => {
             e.preventDefault();
-            alert('GitHub repository will be created soon!');
+            window.open('https://github.com/serenoa287-afk/dodge-this-shit', '_blank');
         });
         
-        // Multiplayer toggle button
-        const mpBtn = document.createElement('button');
-        mpBtn.id = 'multiplayer-btn';
-        mpBtn.className = 'btn btn-primary';
-        mpBtn.textContent = '🎮 Multiplayer';
-        mpBtn.style.position = 'absolute';
-        mpBtn.style.top = '20px';
-        mpBtn.style.right = '20px';
-        mpBtn.style.zIndex = '1000';
-        document.querySelector('.container').appendChild(mpBtn);
-        
-        mpBtn.addEventListener('click', () => {
-            if (this.multiplayer) {
-                this.multiplayer.toggle();
-            }
+        // Multiplayer button in start screen
+        this.multiplayerBtn.addEventListener('click', () => {
+            this.startMultiplayer();
         });
     }
     
@@ -137,7 +138,19 @@ class Game {
         this.gameState = 'playing';
         this.startScreen.style.display = 'none';
         this.gameOverScreen.style.display = 'none';
+        this.isMultiplayer = false;
         this.resetGameState();
+    }
+    
+    startMultiplayer() {
+        // Initialize multiplayer client
+        if (!this.multiplayer) {
+            this.multiplayer = new MultiplayerClient(this);
+        }
+        
+        // Show multiplayer screen
+        this.multiplayer.showScreen('multiplayer');
+        this.isMultiplayer = true;
     }
     
     resetGameState() {
@@ -207,6 +220,14 @@ class Game {
         this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
         this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
         
+        // Send player position to server in multiplayer
+        if (this.isMultiplayer && this.multiplayer && this.gameState === 'playing') {
+            this.multiplayer.sendPlayerMove({
+                x: this.player.x,
+                y: this.player.y
+            });
+        }
+        
         // Update round timer
         if (this.roundActive) {
             this.roundTimer += this.deltaTime;
@@ -217,16 +238,19 @@ class Game {
             }
         }
         
-        // Spawn enemies based on round progress
-        this.enemySpawnTimer += this.deltaTime;
-        if (this.enemySpawnTimer >= this.enemySpawnInterval && this.roundActive) {
-            this.spawnEnemyPattern();
-            this.enemySpawnTimer = 0;
-            
-            // Adjust spawn interval based on level and round progress
-            const roundProgress = this.roundTimer / this.roundDuration;
-            const baseInterval = Math.max(300, 1500 - (this.level * 80));
-            this.enemySpawnInterval = baseInterval * (1 - (roundProgress * 0.5)); // Faster as round progresses
+        // Only spawn enemies locally in single-player mode
+        // In multiplayer, enemies come from server
+        if (!this.isMultiplayer) {
+            this.enemySpawnTimer += this.deltaTime;
+            if (this.enemySpawnTimer >= this.enemySpawnInterval && this.roundActive) {
+                this.spawnEnemyPattern();
+                this.enemySpawnTimer = 0;
+                
+                // Adjust spawn interval based on level and round progress
+                const roundProgress = this.roundTimer / this.roundDuration;
+                const baseInterval = Math.max(300, 1500 - (this.level * 80));
+                this.enemySpawnInterval = baseInterval * (1 - (roundProgress * 0.5)); // Faster as round progresses
+            }
         }
         
         // Update enemies
@@ -315,46 +339,79 @@ class Game {
     }
     
     getPatternType(roundProgress) {
-        // Pattern distribution changes as round progresses
-        const patterns = [
-            { type: 'single', weight: 0.35 },
-            { type: 'row', weight: 0.2 },
-            { type: 'column', weight: 0.2 },
-            { type: 'staggered', weight: 0.1 },
-            { type: 'wave', weight: 0.1 },
-            { type: 'chaserWave', weight: 0.05 }
-        ];
+        // Progressive pattern unlocking based on level
+        let patterns = [];
         
-        // Adjust weights based on round progress and level
-        if (roundProgress > 0.5) {
-            // More complex patterns in second half of round
-            patterns[0].weight = 0.2;   // Less single
-            patterns[1].weight = 0.2;   // Same rows
-            patterns[2].weight = 0.2;   // Same columns
-            patterns[3].weight = 0.15;  // More staggered
-            patterns[4].weight = 0.15;  // More waves
-            patterns[5].weight = 0.1;   // More chaser waves
-        }
-        
-        if (roundProgress > 0.8) {
-            // Intense patterns near end of round
-            patterns[0].weight = 0.1;
-            patterns[1].weight = 0.25;
-            patterns[2].weight = 0.25;
-            patterns[3].weight = 0.15;
-            patterns[4].weight = 0.15;
-            patterns[5].weight = 0.1;
-        }
-        
-        // More chaser waves at higher levels
-        if (this.level > 5) {
-            patterns[5].weight += 0.05;
-            patterns[0].weight -= 0.05;
-        }
-        
-        if (this.level > 10) {
-            patterns[5].weight += 0.05;
-            patterns[0].weight -= 0.05;
+        if (this.level === 1) {
+            // Level 1: Only single enemies
+            patterns = [{ type: 'single', weight: 1.0 }];
+        } else if (this.level === 2) {
+            // Level 2: Mostly single, occasional rows
+            patterns = [
+                { type: 'single', weight: 0.8 },
+                { type: 'row', weight: 0.2 }
+            ];
+        } else if (this.level === 3) {
+            // Level 3: Add columns
+            patterns = [
+                { type: 'single', weight: 0.6 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 }
+            ];
+        } else if (this.level === 4) {
+            // Level 4: Add staggered
+            patterns = [
+                { type: 'single', weight: 0.5 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.1 }
+            ];
+        } else if (this.level === 5) {
+            // Level 5: Add waves
+            patterns = [
+                { type: 'single', weight: 0.4 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.1 },
+                { type: 'wave', weight: 0.1 }
+            ];
+        } else if (this.level === 6) {
+            // Level 6: Add chaser waves
+            patterns = [
+                { type: 'single', weight: 0.3 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.15 },
+                { type: 'wave', weight: 0.1 },
+                { type: 'chaserWave', weight: 0.05 }
+            ];
+        } else if (this.level >= 7) {
+            // Levels 7-10: Full patterns with progression
+            patterns = [
+                { type: 'single', weight: 0.25 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.15 },
+                { type: 'wave', weight: 0.1 },
+                { type: 'chaserWave', weight: 0.1 }
+            ];
+            
+            // Adjust based on round progress
+            if (roundProgress > 0.5) {
+                patterns[0].weight = 0.15;  // Less single
+                patterns[3].weight = 0.2;   // More staggered
+                patterns[4].weight = 0.15;  // More waves
+                patterns[5].weight = 0.15;  // More chaser waves
+            }
+            
+            if (roundProgress > 0.8) {
+                patterns[0].weight = 0.1;
+                patterns[1].weight = 0.25;
+                patterns[2].weight = 0.25;
+                patterns[3].weight = 0.15;
+                patterns[4].weight = 0.15;
+                patterns[5].weight = 0.1;
+            }
         }
         
         const random = Math.random();
@@ -374,13 +431,17 @@ class Game {
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         let x, y, velocity;
         
-        const speed = 0.1 + (this.level * 0.02); // Speed increases with level
+        // Progressive speed increase: slower at start, faster at higher levels
+        const baseSpeed = 0.08;
+        const levelSpeedBonus = (this.level - 1) * 0.015; // 0.015 per level
+        const speed = Math.min(0.2, baseSpeed + levelSpeedBonus); // Cap at 0.2
         
-        // 30% chance to spawn a chaser from diagonal corners
-        const spawnChaser = Math.random() < 0.3 && this.level > 2;
+        // Chance to spawn special enemies based on level
+        const spawnChaser = Math.random() < (0.1 + (this.level - 3) * 0.05) && this.level >= 3;
+        const spawnStalker = Math.random() < (0.05 + (this.level - 7) * 0.05) && this.level >= 7;
         
-        if (spawnChaser) {
-            // Spawn chaser from one of the four corners
+        if (spawnChaser || spawnStalker) {
+            // Spawn chaser or stalker from one of the four corners
             const corner = Math.floor(Math.random() * 4);
             switch(corner) {
                 case 0: // Top-left
@@ -431,6 +492,16 @@ class Game {
         }
         
         const enemy = new Enemy(x, y, velocity, this.level);
+        
+        // Force enemy type if spawning chaser or stalker
+        if (spawnChaser) {
+            enemy.type = 'chaser';
+            enemy.setProperties(); // Re-set properties for chaser
+        } else if (spawnStalker) {
+            enemy.type = 'stalker';
+            enemy.setProperties(); // Re-set properties for stalker
+        }
+        
         this.enemies.push(enemy);
         this.enemyCount++;
         this.updateUI();
@@ -438,7 +509,9 @@ class Game {
     
     spawnRowPattern() {
         const side = Math.floor(Math.random() * 2); // 0: top, 1: bottom
-        const speed = 0.08 + (this.level * 0.015);
+        const baseSpeed = 0.07;
+        const levelSpeedBonus = (this.level - 1) * 0.012;
+        const speed = Math.min(0.18, baseSpeed + levelSpeedBonus);
         
         // Number of enemies in row: 3-7, increases with level
         const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(this.level / 3));
@@ -467,7 +540,9 @@ class Game {
     
     spawnColumnPattern() {
         const side = Math.floor(Math.random() * 2); // 0: left, 1: right
-        const speed = 0.08 + (this.level * 0.015);
+        const baseSpeed = 0.07;
+        const levelSpeedBonus = (this.level - 1) * 0.012;
+        const speed = Math.min(0.18, baseSpeed + levelSpeedBonus);
         
         // Number of enemies in column: 3-7, increases with level
         const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(this.level / 3));
@@ -496,7 +571,9 @@ class Game {
     
     spawnStaggeredPattern() {
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-        const speed = 0.07 + (this.level * 0.012);
+        const baseSpeed = 0.06;
+        const levelSpeedBonus = (this.level - 1) * 0.01;
+        const speed = Math.min(0.16, baseSpeed + levelSpeedBonus);
         
         // Number of enemies: 5-10, increases with level
         const count = 5 + Math.floor(Math.random() * 4) + Math.min(3, Math.floor(this.level / 2));
@@ -563,7 +640,9 @@ class Game {
     }
     
     spawnChaserWave() {
-        const speed = 0.08 + (this.level * 0.015);
+        const baseSpeed = 0.07;
+        const levelSpeedBonus = (this.level - 1) * 0.012;
+        const speed = Math.min(0.18, baseSpeed + levelSpeedBonus);
         
         // Spawn 3-5 chasers from different corners
         const count = 3 + Math.floor(Math.random() * 3);
@@ -596,8 +675,16 @@ class Game {
             }
             
             const enemy = new Enemy(x, y, velocity, this.level);
-            // Stagger their chase timers slightly
-            enemy.chaseDuration += i * 500;
+            
+            // At higher levels, some chasers become stalkers
+            if (this.level >= 7 && Math.random() < 0.4) {
+                enemy.type = 'stalker';
+                enemy.setProperties();
+            } else {
+                // Stagger their chase timers slightly
+                enemy.chaseDuration += i * 500;
+            }
+            
             this.enemies.push(enemy);
             this.enemyCount++;
         }
@@ -624,6 +711,12 @@ class Game {
         const roundBonus = 500 * this.level;
         this.score += roundBonus;
         
+        // Check if game is complete (10 rounds)
+        if (this.level >= 10) {
+            this.gameComplete();
+            return;
+        }
+        
         // Level up after each round
         this.level++;
         this.levelManager.applyLevelEffects(this.level);
@@ -647,6 +740,14 @@ class Game {
         this.updateUI();
     }
     
+    gameComplete() {
+        this.gameState = 'gameover';
+        document.getElementById('final-score').textContent = this.score;
+        document.getElementById('final-level').textContent = 'COMPLETE!';
+        document.getElementById('game-over').querySelector('h2').textContent = 'VICTORY!';
+        this.gameOverScreen.style.display = 'flex';
+    }
+    
     levelUp() {
         // Leveling now happens at end of each round
         // This method is kept for compatibility
@@ -667,11 +768,20 @@ class Game {
         // Draw player
         this.player.draw(this.ctx);
         
+        // Draw other players in multiplayer
+        if (this.isMultiplayer && this.multiplayer) {
+            this.multiplayer.otherPlayers.forEach(otherPlayer => {
+                this.drawOtherPlayer(otherPlayer);
+            });
+        }
+        
         // Draw enemies
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         
         // Draw HUD
-        this.drawHUD();
+        if (!this.isMultiplayer) {
+            this.drawHUD();
+        }
         
         // Draw pause overlay
         if (this.gameState === 'paused') {
@@ -682,6 +792,35 @@ class Game {
             this.ctx.font = '40px "Press Start 2P"';
             this.ctx.textAlign = 'center';
             this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
+        }
+    }
+    
+    drawOtherPlayer(player) {
+        // Draw other player circle
+        this.ctx.fillStyle = player.color;
+        this.ctx.beginPath();
+        this.ctx.arc(player.position.x, player.position.y, 15, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw outline
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(player.position.x, player.position.y, 15, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Draw player name
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '12px "Roboto Mono"';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(player.name, player.position.x, player.position.y - 25);
+        
+        // Draw lives indicator
+        for (let i = 0; i < player.lives; i++) {
+            this.ctx.fillStyle = '#ff6b6b';
+            this.ctx.beginPath();
+            this.ctx.arc(player.position.x - 10 + (i * 10), player.position.y + 25, 4, 0, Math.PI * 2);
+            this.ctx.fill();
         }
     }
     
