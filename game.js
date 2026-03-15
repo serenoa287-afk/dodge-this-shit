@@ -143,11 +143,12 @@ class Game {
     }
     
     startMultiplayer() {
-        // Use room multiplayer client if available
-        if (!this.multiplayer && typeof RoomMultiplayerClient !== 'undefined') {
-            this.multiplayer = new RoomMultiplayerClient(this);
+        // Use sync multiplayer client if available
+        if (!this.multiplayer && typeof SyncMultiplayerClient !== 'undefined') {
+            this.multiplayer = new SyncMultiplayerClient(this);
         }
         this.isMultiplayer = true;
+        this.useServerEnemies = false; // Default to local enemies
     }
     
     resetGameState() {
@@ -765,6 +766,11 @@ class Game {
         // Draw other players in multiplayer
         if (this.isMultiplayer && this.multiplayer && this.multiplayer.drawOtherPlayers) {
             this.multiplayer.drawOtherPlayers(this.ctx);
+        }
+        
+        // Draw server enemies in synchronized multiplayer
+        if (this.isMultiplayer && this.multiplayer && this.multiplayer.gameActive && this.multiplayer.drawServerEnemies) {
+            this.multiplayer.drawServerEnemies(this.ctx);
         }
         
         // Draw enemies
