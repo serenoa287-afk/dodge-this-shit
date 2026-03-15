@@ -1,0 +1,23 @@
+{
+  "name": "dodge-this-shit-game",
+  "version": "1.0.0",
+  "description": "Browser JavaScript game similar to Warcraft 3 custom map Dodge This Shit",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx live-server .",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "game",
+    "javascript",
+    "browser",
+    "warcraft3",
+    "dodge",
+    "arena"
+  ],
+  "author": "Angus",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
