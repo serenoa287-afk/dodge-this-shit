@@ -157,6 +157,11 @@ class Game {
         }
         this.isMultiplayer = true;
         this.useServerEnemies = false; // Default to local enemies
+        
+        // Show the multiplayer menu (client will handle connection when user clicks)
+        if (this.multiplayer && this.multiplayer.showUnifiedMenu) {
+            this.multiplayer.showUnifiedMenu();
+        }
     }
     
     resetGameState() {
@@ -1204,5 +1209,5 @@ class Game {
 
 // Initialize game when page loads
 window.addEventListener('load', () => {
-    const game = new Game();
+    window.game = new Game();
 });

@@ -24,6 +24,9 @@ class UnifiedMultiplayerClient {
     init() {
         console.log('Unified multiplayer client initialized');
         this.addUnifiedMultiplayerButton();
+        
+        // DON'T auto-connect! Wait for user to click button
+        // Connection will be established when user clicks "Connect & Join Lobby"
     }
     
     addUnifiedMultiplayerButton() {
@@ -180,17 +183,28 @@ class UnifiedMultiplayerClient {
     }
     
     connectAndJoinLobby() {
+        // Prevent multiple connections
         if (this.connected) {
-            this.joinLobby();
+            this.showMessage('Already connected!');
             return;
         }
         
+        // Prevent connecting if already trying to connect
+        if (this.connecting) {
+            this.showMessage('Already connecting...');
+            return;
+        }
+        
+        this.connecting = true;
+        
         try {
+            console.log(`Connecting to ${this.serverUrl}...`);
             this.ws = new WebSocket(this.serverUrl);
             
             this.ws.onopen = () => {
                 console.log('Connected to unified server');
                 this.connected = true;
+                this.connecting = false;
                 this.showMessage('Connected! Joining lobby...');
                 this.joinLobby();
             };
@@ -216,6 +230,7 @@ class UnifiedMultiplayerClient {
             
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
+                this.connecting = false;
                 this.showMessage('Connection failed. Make sure server is running!');
             };
             
@@ -700,10 +715,7 @@ class UnifiedMultiplayerClient {
 // Make available globally
 if (typeof window !== 'undefined') {
     window.UnifiedMultiplayerClient = UnifiedMultiplayerClient;
-    window.currentUnifiedMultiplayer = null;
     
-    // Initialize when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        window.currentUnifiedMultiplayer = new UnifiedMultiplayerClient(window.game);
-    });
+    // The client will be created when user clicks "Multiplayer Lobby" button
+    // No auto-initialization to prevent duplicate connections
 }
