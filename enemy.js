@@ -15,6 +15,11 @@ class Enemy {
         this.glowColor = this.getGlowColor();
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+        
+        // Spawn delay for staggered patterns
+        this.spawnDelay = 0;
+        this.active = false;
+        this.spawnTimer = 0;
     }
     
     determineType() {
@@ -99,6 +104,16 @@ class Enemy {
     }
     
     update(deltaTime) {
+        // Handle spawn delay for staggered patterns
+        if (this.spawnDelay > 0) {
+            this.spawnTimer += deltaTime;
+            if (this.spawnTimer < this.spawnDelay) {
+                return; // Don't move until spawn delay is over
+            }
+        }
+        
+        this.active = true;
+        
         // Update position
         this.x += this.velocity.x * this.speedMultiplier * deltaTime;
         this.y += this.velocity.y * this.speedMultiplier * deltaTime;
@@ -114,6 +129,16 @@ class Enemy {
     }
     
     draw(ctx) {
+        // Don't draw if not active yet (still in spawn delay)
+        if (!this.active) {
+            // Draw a faint preview of incoming enemy
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+        
         // Draw glow effect
         ctx.fillStyle = this.glowColor;
         ctx.beginPath();

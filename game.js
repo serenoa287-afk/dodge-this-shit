@@ -20,7 +20,10 @@ class Game {
         this.lastTime = 0;
         this.deltaTime = 0;
         this.enemySpawnTimer = 0;
-        this.enemySpawnInterval = 2000; // ms
+        this.enemySpawnInterval = 1000; // ms - faster spawning for rows/columns
+        this.roundTimer = 0;
+        this.roundDuration = 30000; // 30 seconds per round
+        this.roundActive = false;
         
         // Input
         this.keys = {};
@@ -118,6 +121,8 @@ class Game {
         this.enemies = [];
         this.enemyCount = 0;
         this.enemySpawnTimer = 0;
+        this.roundTimer = 0;
+        this.roundActive = true;
         
         // Reset player position
         this.player.x = this.canvas.width / 2;
@@ -176,14 +181,26 @@ class Game {
         this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
         this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
         
-        // Spawn enemies
+        // Update round timer
+        if (this.roundActive) {
+            this.roundTimer += this.deltaTime;
+            
+            // Check if round is over (30 seconds)
+            if (this.roundTimer >= this.roundDuration) {
+                this.endRound();
+            }
+        }
+        
+        // Spawn enemies based on round progress
         this.enemySpawnTimer += this.deltaTime;
-        if (this.enemySpawnTimer >= this.enemySpawnInterval) {
-            this.spawnEnemy();
+        if (this.enemySpawnTimer >= this.enemySpawnInterval && this.roundActive) {
+            this.spawnEnemyPattern();
             this.enemySpawnTimer = 0;
             
-            // Adjust spawn interval based on level
-            this.enemySpawnInterval = Math.max(500, 2000 - (this.level * 100));
+            // Adjust spawn interval based on level and round progress
+            const roundProgress = this.roundTimer / this.roundDuration;
+            const baseInterval = Math.max(300, 1500 - (this.level * 80));
+            this.enemySpawnInterval = baseInterval * (1 - (roundProgress * 0.5)); // Faster as round progresses
         }
         
         // Update enemies
@@ -214,13 +231,78 @@ class Game {
             }
         }
         
-        // Check level progression
+        // Check level progression (now based on rounds completed)
         if (this.score >= this.level * 1000) {
             this.levelUp();
         }
     }
     
-    spawnEnemy() {
+    spawnEnemyPattern() {
+        const roundProgress = this.roundTimer / this.roundDuration;
+        const patternType = this.getPatternType(roundProgress);
+        
+        switch(patternType) {
+            case 'single':
+                this.spawnSingleEnemy();
+                break;
+            case 'row':
+                this.spawnRowPattern();
+                break;
+            case 'column':
+                this.spawnColumnPattern();
+                break;
+            case 'staggered':
+                this.spawnStaggeredPattern();
+                break;
+            case 'wave':
+                this.spawnWavePattern();
+                break;
+        }
+    }
+    
+    getPatternType(roundProgress) {
+        // Pattern distribution changes as round progresses
+        const patterns = [
+            { type: 'single', weight: 0.4 },
+            { type: 'row', weight: 0.2 },
+            { type: 'column', weight: 0.2 },
+            { type: 'staggered', weight: 0.1 },
+            { type: 'wave', weight: 0.1 }
+        ];
+        
+        // Adjust weights based on round progress
+        if (roundProgress > 0.5) {
+            // More complex patterns in second half of round
+            patterns[0].weight = 0.2;  // Less single
+            patterns[1].weight = 0.25; // More rows
+            patterns[2].weight = 0.25; // More columns
+            patterns[3].weight = 0.15; // More staggered
+            patterns[4].weight = 0.15; // More waves
+        }
+        
+        if (roundProgress > 0.8) {
+            // Intense patterns near end of round
+            patterns[0].weight = 0.1;
+            patterns[1].weight = 0.3;
+            patterns[2].weight = 0.3;
+            patterns[3].weight = 0.15;
+            patterns[4].weight = 0.15;
+        }
+        
+        const random = Math.random();
+        let cumulative = 0;
+        
+        for (const pattern of patterns) {
+            cumulative += pattern.weight;
+            if (random < cumulative) {
+                return pattern.type;
+            }
+        }
+        
+        return 'single';
+    }
+    
+    spawnSingleEnemy() {
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         let x, y, velocity;
         
@@ -255,6 +337,132 @@ class Game {
         this.updateUI();
     }
     
+    spawnRowPattern() {
+        const side = Math.floor(Math.random() * 2); // 0: top, 1: bottom
+        const speed = 0.08 + (this.level * 0.015);
+        
+        // Number of enemies in row: 3-7, increases with level
+        const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(this.level / 3));
+        const spacing = this.canvas.width / (count + 1);
+        
+        for (let i = 1; i <= count; i++) {
+            let x, y, velocity;
+            
+            if (side === 0) { // Top row
+                x = i * spacing;
+                y = -50 - (i * 10); // Stagger them slightly
+                velocity = { x: 0, y: speed };
+            } else { // Bottom row
+                x = i * spacing;
+                y = this.canvas.height + 50 + (i * 10);
+                velocity = { x: 0, y: -speed };
+            }
+            
+            const enemy = new Enemy(x, y, velocity, this.level);
+            this.enemies.push(enemy);
+            this.enemyCount++;
+        }
+        
+        this.updateUI();
+    }
+    
+    spawnColumnPattern() {
+        const side = Math.floor(Math.random() * 2); // 0: left, 1: right
+        const speed = 0.08 + (this.level * 0.015);
+        
+        // Number of enemies in column: 3-7, increases with level
+        const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(this.level / 3));
+        const spacing = this.canvas.height / (count + 1);
+        
+        for (let i = 1; i <= count; i++) {
+            let x, y, velocity;
+            
+            if (side === 0) { // Left column
+                x = -50 - (i * 10); // Stagger them slightly
+                y = i * spacing;
+                velocity = { x: speed, y: 0 };
+            } else { // Right column
+                x = this.canvas.width + 50 + (i * 10);
+                y = i * spacing;
+                velocity = { x: -speed, y: 0 };
+            }
+            
+            const enemy = new Enemy(x, y, velocity, this.level);
+            this.enemies.push(enemy);
+            this.enemyCount++;
+        }
+        
+        this.updateUI();
+    }
+    
+    spawnStaggeredPattern() {
+        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        const speed = 0.07 + (this.level * 0.012);
+        
+        // Number of enemies: 5-10, increases with level
+        const count = 5 + Math.floor(Math.random() * 4) + Math.min(3, Math.floor(this.level / 2));
+        
+        for (let i = 0; i < count; i++) {
+            let x, y, velocity;
+            const delay = i * 200; // Stagger by 200ms
+            
+            switch(side) {
+                case 0: // Top - staggered horizontally
+                    x = Math.random() * this.canvas.width;
+                    y = -50 - (i * 30);
+                    velocity = { x: 0, y: speed };
+                    break;
+                case 1: // Right - staggered vertically
+                    x = this.canvas.width + 50 + (i * 30);
+                    y = Math.random() * this.canvas.height;
+                    velocity = { x: -speed, y: 0 };
+                    break;
+                case 2: // Bottom - staggered horizontally
+                    x = Math.random() * this.canvas.width;
+                    y = this.canvas.height + 50 + (i * 30);
+                    velocity = { x: 0, y: -speed };
+                    break;
+                case 3: // Left - staggered vertically
+                    x = -50 - (i * 30);
+                    y = Math.random() * this.canvas.height;
+                    velocity = { x: speed, y: 0 };
+                    break;
+            }
+            
+            const enemy = new Enemy(x, y, velocity, this.level);
+            enemy.spawnDelay = delay; // Store delay for staggered spawning
+            this.enemies.push(enemy);
+            this.enemyCount++;
+        }
+        
+        this.updateUI();
+    }
+    
+    spawnWavePattern() {
+        // Spawn multiple patterns at once for intense waves
+        const patterns = ['row', 'column', 'staggered'];
+        const patternCount = 1 + Math.floor(Math.random() * 2) + Math.min(1, Math.floor(this.level / 5));
+        
+        for (let i = 0; i < patternCount; i++) {
+            const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+            
+            switch(pattern) {
+                case 'row':
+                    this.spawnRowPattern();
+                    break;
+                case 'column':
+                    this.spawnColumnPattern();
+                    break;
+                case 'staggered':
+                    this.spawnStaggeredPattern();
+                    break;
+            }
+            
+            // Small delay between patterns in the wave
+            this.enemySpawnTimer = -500 * (i + 1);
+        }
+    }
+    
     checkCollision(circle1, circle2) {
         const dx = circle1.x - circle2.x;
         const dy = circle1.y - circle2.y;
@@ -262,16 +470,44 @@ class Game {
         return distance < (circle1.radius + circle2.radius);
     }
     
-    levelUp() {
+    endRound() {
+        this.roundActive = false;
+        this.roundTimer = 0;
+        
+        // Clear all enemies
+        this.enemies = [];
+        this.enemyCount = 0;
+        
+        // Bonus score for surviving the round
+        const roundBonus = 500 * this.level;
+        this.score += roundBonus;
+        
+        // Level up after each round
         this.level++;
         this.levelManager.applyLevelEffects(this.level);
         
-        // Visual feedback for level up
+        // Show round complete message
         this.ctx.fillStyle = '#00ffea';
         this.ctx.font = '40px "Press Start 2P"';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`LEVEL ${this.level}`, this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText(`ROUND ${this.level - 1} COMPLETE!`, this.canvas.width / 2, this.canvas.height / 2 - 30);
+        this.ctx.font = '24px "Press Start 2P"';
+        this.ctx.fillText(`+${roundBonus} BONUS`, this.canvas.width / 2, this.canvas.height / 2 + 30);
         
+        // Start next round after 3 seconds
+        setTimeout(() => {
+            if (this.gameState === 'playing') {
+                this.roundActive = true;
+                this.roundTimer = 0;
+            }
+        }, 3000);
+        
+        this.updateUI();
+    }
+    
+    levelUp() {
+        // Leveling now happens at end of each round
+        // This method is kept for compatibility
         this.updateUI();
     }
     
@@ -340,8 +576,23 @@ class Game {
         this.ctx.font = '16px "Press Start 2P"';
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`SCORE: ${this.score}`, 20, 30);
-        this.ctx.fillText(`LEVEL: ${this.level}`, 20, 60);
+        this.ctx.fillText(`ROUND: ${this.level}`, 20, 60);
         this.ctx.fillText(`LIVES: ${this.lives}`, 20, 90);
+        
+        // Round timer
+        if (this.roundActive) {
+            const timeLeft = Math.max(0, this.roundDuration - this.roundTimer);
+            const seconds = Math.floor(timeLeft / 1000);
+            const milliseconds = Math.floor((timeLeft % 1000) / 10);
+            this.ctx.fillText(`TIME: ${seconds}.${milliseconds.toString().padStart(2, '0')}`, 20, 120);
+            
+            // Timer bar
+            const progress = timeLeft / this.roundDuration;
+            this.ctx.fillStyle = '#00ffea';
+            this.ctx.fillRect(20, 130, 200 * progress, 5);
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.strokeRect(20, 130, 200, 5);
+        }
         
         // Lives indicator
         for (let i = 0; i < this.lives; i++) {

@@ -20,7 +20,7 @@
             <div class="game-info">
                 <div class="stats">
                     <div class="stat">
-                        <span class="stat-label">Level:</span>
+                        <span class="stat-label">Round:</span>
                         <span id="level" class="stat-value">1</span>
                     </div>
                     <div class="stat">
@@ -49,7 +49,7 @@
                 <div id="game-over" class="overlay">
                     <h2>GAME OVER</h2>
                     <p>Final Score: <span id="final-score">0</span></p>
-                    <p>Level Reached: <span id="final-level">1</span></p>
+                    <p>Round Reached: <span id="final-level">1</span></p>
                     <button id="restart-btn" class="btn btn-primary">Play Again</button>
                 </div>
                 <div id="start-screen" class="overlay">
@@ -59,8 +59,9 @@
                         <ul>
                             <li>Use <strong>WASD</strong> or <strong>Arrow Keys</strong> to move</li>
                             <li>Dodge enemies coming from all sides</li>
-                            <li>Survive as long as possible</li>
-                            <li>Each level increases difficulty</li>
+                            <li>Survive 30-second rounds</li>
+                            <li>Enemies spawn in rows, columns, and staggered patterns</li>
+                            <li>Each completed round gives bonus points</li>
                         </ul>
                         <p class="tip">Tip: Stay near the center for better reaction time!</p>
                     </div>
@@ -95,12 +96,14 @@
                     <span>Move to Position</span>
                 </div>
                 
-                <h3>Level Progression</h3>
+                <h3>Round Patterns</h3>
                 <ul class="level-info">
-                    <li>Level 1-3: Basic enemies, slow speed</li>
-                    <li>Level 4-6: Faster enemies, more spawns</li>
-                    <li>Level 7-9: Multiple enemy types</li>
-                    <li>Level 10+: Boss waves, special patterns</li>
+                    <li><strong>Single:</strong> Random enemy spawns</li>
+                    <li><strong>Rows:</strong> 3-7 enemies in horizontal lines</li>
+                    <li><strong>Columns:</strong> 3-7 enemies in vertical lines</li>
+                    <li><strong>Staggered:</strong> Delayed enemy waves</li>
+                    <li><strong>Waves:</strong> Multiple patterns at once</li>
+                    <li>Patterns intensify as round progresses</li>
                 </ul>
             </div>
         </div>
