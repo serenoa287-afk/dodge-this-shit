@@ -151,6 +151,15 @@ class UnifiedMultiplayerServer {
         const player = this.players.get(playerId);
         if (!player) return;
         
+        // Check if player is already in lobby
+        if (player.inLobby) {
+            player.ws.send(JSON.stringify({
+                type: 'error',
+                message: 'You are already in the lobby'
+            }));
+            return;
+        }
+        
         // Check if lobby is full
         if (this.lobby.players.size >= this.lobby.maxPlayers) {
             player.ws.send(JSON.stringify({
@@ -164,7 +173,7 @@ class UnifiedMultiplayerServer {
         if (this.lobby.gameActive) {
             player.ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Game already in progress'
+                message: 'Game already in progress. Please wait for current game to finish.'
             }));
             return;
         }
@@ -174,13 +183,16 @@ class UnifiedMultiplayerServer {
         player.ready = false;
         player.score = 0;
         player.lives = 3;
+        player.x = 400;
+        player.y = 300;
         this.lobby.players.add(playerId);
         
         // Send lobby info to player
         player.ws.send(JSON.stringify({
             type: 'lobbyJoined',
             players: this.getLobbyPlayers(),
-            maxPlayers: this.lobby.maxPlayers
+            maxPlayers: this.lobby.maxPlayers,
+            gameActive: this.lobby.gameActive
         }));
         
         // Notify other players
@@ -217,8 +229,8 @@ class UnifiedMultiplayerServer {
     }
     
     checkStartGame() {
-        // Check if all players are ready and there are at least 2 players
-        if (this.lobby.players.size < 1) return;
+        // Check if all players are ready (minimum 1 player, maximum 4)
+        if (this.lobby.players.size < 1 || this.lobby.players.size > 4) return;
         
         const allReady = Array.from(this.lobby.players).every(playerId => {
             const player = this.players.get(playerId);
@@ -243,11 +255,34 @@ class UnifiedMultiplayerServer {
         const player = this.players.get(playerId);
         if (!player || !player.inLobby) return;
         
-        // Check if at least 1 player is in lobby
+        // Check if game is already active
+        if (this.lobby.gameActive) {
+            player.ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Game already in progress'
+            }));
+            return;
+        }
+        
+        // Check if at least 1 player is in lobby and all are ready
         if (this.lobby.players.size === 0) {
             player.ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Need at least 1 player to start'
+                message: 'No players in lobby'
+            }));
+            return;
+        }
+        
+        // Verify all players are ready
+        const allReady = Array.from(this.lobby.players).every(pId => {
+            const p = this.players.get(pId);
+            return p && p.ready;
+        });
+        
+        if (!allReady) {
+            player.ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Not all players are ready'
             }));
             return;
         }
@@ -291,7 +326,7 @@ class UnifiedMultiplayerServer {
         // Start game loop
         this.startGameLoop();
         
-        console.log(`Game started with ${this.lobby.players.size} players`);
+        console.log(`Game started with ${this.lobby.players.size} player(s)`);
     }
     
     startGameLoop() {

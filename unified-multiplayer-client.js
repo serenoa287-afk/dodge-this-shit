@@ -73,7 +73,7 @@ class UnifiedMultiplayerClient {
             ">
                 <h2 style="color: #00ffea; margin-bottom: 20px;">🎮 MULTIPLAYER LOBBY</h2>
                 <p style="color: #aaa; margin-bottom: 20px;">
-                    Join the lobby, get ready, and play together!
+                    Join the single lobby (max 4 players). When all players click "Ready", the game starts automatically!
                 </p>
                 
                 <div id="unified-connection-section" ${this.connected ? 'style="display: none;"' : ''}>
@@ -91,12 +91,12 @@ class UnifiedMultiplayerClient {
                 </div>
                 
                 <div id="unified-lobby-section" ${this.connected && this.inLobby ? '' : 'style="display: none;"'}>
-                    <h3 style="color: #00ffea; margin: 20px 0;">LOBBY</h3>
+                    <h3 style="color: #00ffea; margin: 20px 0;">LOBBY (1-4 players)</h3>
                     <div style="margin: 10px 0; color: #aaa;">
                         <div>Players: <span id="lobby-player-count">0</span>/4</div>
                         <div id="game-status" style="margin: 10px 0; padding: 10px; 
                              background: rgba(0, 255, 234, 0.1); border-radius: 8px;">
-                            ${this.gameActive ? 'Game in progress' : 'Waiting for players...'}
+                            ${this.gameActive ? 'Game in progress' : 'Click "Ready" when everyone is here'}
                         </div>
                     </div>
                     
