@@ -151,16 +151,16 @@ class Game {
     }
     
     startMultiplayer() {
-        // Use unified multiplayer client if available
-        if (!this.multiplayer && typeof UnifiedMultiplayerClient !== 'undefined') {
-            this.multiplayer = new UnifiedMultiplayerClient(this);
+        // Use simple lobby client if available
+        if (!this.multiplayer && typeof SimpleLobbyClient !== 'undefined') {
+            this.multiplayer = new SimpleLobbyClient(this);
         }
         this.isMultiplayer = true;
         this.useServerEnemies = false; // Default to local enemies
         
-        // Show the multiplayer menu (client will handle connection when user clicks)
-        if (this.multiplayer && this.multiplayer.showUnifiedMenu) {
-            this.multiplayer.showUnifiedMenu();
+        // Show the lobby menu
+        if (this.multiplayer && this.multiplayer.showLobbyMenu) {
+            this.multiplayer.showLobbyMenu();
         }
     }
     
