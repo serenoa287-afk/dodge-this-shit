@@ -1,126 +1,195 @@
-            border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                font-size: 1.2em;
-                transition: all 0.3s ease;
-            }
-            
-            .chat-toggle:hover {
-                background: rgba(0, 255, 234, 0.3);
-                transform: scale(1.1);
-            }
-            
-            .chat-minimized {
-                position: absolute;
-                top: 50px;
-                right: 0;
-                width: 300px;
-                background: rgba(0, 0, 0, 0.9);
-                border: 2px solid #00ffea;
-                border-radius: 10px;
-                padding: 10px;
-                display: none;
-            }
-            
-            .chat-minimized input {
-                width: 100%;
-                padding: 8px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid #00ffea;
-                border-radius: 5px;
-                color: white;
-                font-family: 'Roboto Mono', monospace;
-            }
-            
-            .chat-minimized.active {
-                display: block;
-            }
-        `;
-        document.head.appendChild(style);
+// Multiplayer Client for Dodge This Shit Game
+class MultiplayerClient {
+    constructor(gameInstance) {
+        this.game = gameInstance;
+        this.ws = null;
+        this.connected = false;
+        this.playerId = null;
+        this.playerName = 'Player';
+        this.lobbyId = null;
+        this.isHost = false;
+        this.otherPlayers = new Map();
+        
+        // Default server URL (can be changed by user)
+        this.serverUrl = 'ws://localhost:8080';
+        
+        // Initialize when game is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
     }
     
-    setupEventListeners() {
-        // Multiplayer menu events
-        document.getElementById('update-name')?.addEventListener('click', () => {
-            const nameInput = document.getElementById('player-name');
-            if (nameInput.value.trim()) {
-                this.setPlayerName(nameInput.value.trim());
+    init() {
+        console.log('Initializing multiplayer client...');
+        
+        // Create multiplayer button if it doesn't exist
+        this.createMultiplayerButton();
+        
+        // Try to connect to server
+        this.connectToServer();
+    }
+    
+    createMultiplayerButton() {
+        // Check if button already exists
+        if (document.getElementById('multiplayer-btn')) return;
+        
+        // Create multiplayer button
+        const multiplayerBtn = document.createElement('button');
+        multiplayerBtn.id = 'multiplayer-btn';
+        multiplayerBtn.className = 'btn btn-primary';
+        multiplayerBtn.textContent = '🎮 Online Multiplayer';
+        multiplayerBtn.style.marginTop = '10px';
+        
+        // Add to start screen controls
+        const startScreenControls = document.querySelector('.instructions');
+        if (startScreenControls) {
+            startScreenControls.appendChild(multiplayerBtn);
+            
+            // Add click handler
+            multiplayerBtn.addEventListener('click', () => {
+                this.showMultiplayerMenu();
+            });
+        }
+    }
+    
+    showMultiplayerMenu() {
+        // Create simple multiplayer menu
+        const menuHTML = `
+            <div class="multiplayer-menu" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.95);
+                padding: 30px;
+                border-radius: 15px;
+                border: 3px solid #00ffea;
+                z-index: 1000;
+                max-width: 500px;
+                width: 90%;
+                text-align: center;
+            ">
+                <h2 style="color: #00ffea; margin-bottom: 20px;">🎮 ONLINE MULTIPLAYER</h2>
+                
+                <div style="margin: 20px 0;">
+                    <label style="display: block; margin-bottom: 10px; color: #aaa;">Server URL:</label>
+                    <input type="text" id="server-url" value="${this.serverUrl}" 
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); 
+                                  border: 2px solid #00ffea; border-radius: 5px; color: white;">
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <label style="display: block; margin-bottom: 10px; color: #aaa;">Your Name:</label>
+                    <input type="text" id="player-name" value="${this.playerName}" 
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); 
+                                  border: 2px solid #00ffea; border-radius: 5px; color: white;">
+                </div>
+                
+                <div id="connection-status" style="margin: 20px 0; padding: 10px; 
+                     background: rgba(0,255,234,0.1); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <div id="status-indicator" style="width: 12px; height: 12px; 
+                             border-radius: 50%; background: #ffff00;"></div>
+                        <span id="status-text">Connecting to server...</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+                    <button id="connect-btn" class="btn btn-primary" style="flex: 1;">Connect</button>
+                    <button id="cancel-btn" class="btn btn-danger" style="flex: 1;">Cancel</button>
+                </div>
+            </div>
+        `;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'multiplayer-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        overlay.innerHTML = menuHTML;
+        
+        // Add to document
+        document.body.appendChild(overlay);
+        
+        // Add event listeners
+        document.getElementById('connect-btn').addEventListener('click', () => {
+            this.serverUrl = document.getElementById('server-url').value;
+            this.playerName = document.getElementById('player-name').value || 'Player';
+            this.connectToServer();
+        });
+        
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            this.hideMultiplayerMenu();
+        });
+    }
+    
+    hideMultiplayerMenu() {
+        const overlay = document.getElementById('multiplayer-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+    
+    updateConnectionStatus(connected, message = '') {
+        const indicator = document.getElementById('status-indicator');
+        const text = document.getElementById('status-text');
+        
+        if (indicator && text) {
+            if (connected) {
+                indicator.style.background = '#00ff00';
+                indicator.style.boxShadow = '0 0 10px #00ff00';
+                text.textContent = message || 'Connected to server!';
+                
+                // Auto-close menu after successful connection
+                setTimeout(() => {
+                    this.hideMultiplayerMenu();
+                    this.showLobbyMenu();
+                }, 1500);
+            } else {
+                indicator.style.background = '#ff0000';
+                indicator.style.boxShadow = '0 0 10px #ff0000';
+                text.textContent = message || 'Disconnected from server';
             }
-        });
+        }
+    }
+    
+    showLobbyMenu() {
+        // Simple lobby menu for now
+        alert(`Connected to multiplayer server!\n\nPlayer: ${this.playerName}\nServer: ${this.serverUrl}\n\nNote: Full multiplayer lobby system needs more development.`);
         
-        document.getElementById('player-name')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const nameInput = document.getElementById('player-name');
-                if (nameInput.value.trim()) {
-                    this.setPlayerName(nameInput.value.trim());
-                }
-            }
-        });
-        
-        document.getElementById('create-lobby')?.addEventListener('click', () => {
-            const lobbyName = document.getElementById('lobby-name').value.trim() || 'Dodge Arena';
-            this.createLobby(lobbyName);
-        });
-        
-        document.getElementById('refresh-lobbies')?.addEventListener('click', () => {
-            this.requestLobbyList();
-        });
-        
-        document.getElementById('back-to-single')?.addEventListener('click', () => {
-            this.showScreen('start');
-        });
-        
-        // Lobby screen events
-        document.getElementById('ready-checkbox')?.addEventListener('change', (e) => {
-            this.setReady(e.target.checked);
-        });
-        
-        document.getElementById('start-game')?.addEventListener('click', () => {
-            this.startGame();
-        });
-        
-        document.getElementById('leave-lobby')?.addEventListener('click', () => {
-            this.leaveLobby();
-        });
-        
-        document.getElementById('send-chat')?.addEventListener('click', () => {
-            this.sendChatMessage();
-        });
-        
-        document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendChatMessage();
-            }
-        });
-        
-        // In-game chat events
-        document.querySelector('.chat-toggle')?.addEventListener('click', () => {
-            const chatMinimized = document.querySelector('.chat-minimized');
-            chatMinimized.classList.toggle('active');
-        });
-        
-        document.getElementById('game-chat-input')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const input = document.getElementById('game-chat-input');
-                if (input.value.trim()) {
-                    this.sendChatMessage(input.value.trim());
-                    input.value = '';
-                }
-            }
-        });
+        // For now, just start a single-player game
+        this.game.startGame();
     }
     
     connectToServer() {
         try {
+            this.updateConnectionStatus(false, 'Connecting...');
+            
             this.ws = new WebSocket(this.serverUrl);
             
             this.ws.onopen = () => {
                 console.log('Connected to multiplayer server');
                 this.connected = true;
-                this.updateConnectionStatus('connected');
-                this.requestLobbyList();
+                this.updateConnectionStatus(true, 'Connected! Setting up...');
+                
+                // Send initial handshake
+                this.sendToServer({
+                    type: 'hello',
+                    name: this.playerName,
+                    version: '1.0'
+                });
             };
             
             this.ws.onmessage = (event) => {
@@ -135,46 +204,24 @@
             this.ws.onclose = () => {
                 console.log('Disconnected from multiplayer server');
                 this.connected = false;
-                this.updateConnectionStatus('disconnected');
+                this.updateConnectionStatus(false, 'Disconnected - Server not available');
                 
-                // Try to reconnect after 3 seconds
+                // Try to reconnect after 5 seconds
                 setTimeout(() => {
                     if (!this.connected) {
                         this.connectToServer();
                     }
-                }, 3000);
+                }, 5000);
             };
             
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                this.updateConnectionStatus('disconnected');
+                this.updateConnectionStatus(false, 'Connection failed - Check server URL');
             };
             
         } catch (error) {
             console.error('Failed to connect to server:', error);
-            this.updateConnectionStatus('disconnected');
-        }
-    }
-    
-    updateConnectionStatus(status) {
-        const statusElem = document.getElementById('connection-status');
-        if (!statusElem) return;
-        
-        const indicator = statusElem.querySelector('.status-indicator');
-        const text = statusElem.querySelector('span');
-        
-        indicator.className = 'status-indicator ' + status;
-        
-        switch(status) {
-            case 'connected':
-                text.textContent = 'Connected to server';
-                break;
-            case 'connecting':
-                text.textContent = 'Connecting to server...';
-                break;
-            case 'disconnected':
-                text.textContent = 'Disconnected - Trying to reconnect...';
-                break;
+            this.updateConnectionStatus(false, 'Connection error: ' + error.message);
         }
     }
     
@@ -182,7 +229,7 @@
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         } else {
-            console.warn('WebSocket not ready, cannot send message:', message);
+            console.warn('WebSocket not ready, cannot send message');
         }
     }
     
@@ -191,419 +238,45 @@
         
         switch(message.type) {
             case 'welcome':
-                this.handleWelcome(message);
+                this.playerId = message.playerId;
+                this.updateConnectionStatus(true, `Welcome ${this.playerName}!`);
                 break;
-            case 'lobbyList':
-                this.handleLobbyList(message);
-                break;
-            case 'lobbyCreated':
-                this.handleLobbyCreated(message);
-                break;
-            case 'lobbyInfo':
-                this.handleLobbyInfo(message);
-                break;
-            case 'playerJoined':
-                this.handlePlayerJoined(message);
-                break;
-            case 'playerLeft':
-                this.handlePlayerLeft(message);
-                break;
-            case 'playerReady':
-                this.handlePlayerReady(message);
-                break;
-            case 'newHost':
-                this.handleNewHost(message);
-                break;
-            case 'gameStarting':
-                this.handleGameStarting(message);
-                break;
-            case 'gameCountdown':
-                this.handleGameCountdown(message);
-                break;
-            case 'roundStarted':
-                this.handleRoundStarted(message);
-                break;
-            case 'enemiesSpawned':
-                this.handleEnemiesSpawned(message);
-                break;
-            case 'playerMoved':
-                this.handlePlayerMoved(message);
-                break;
-            case 'playerAction':
-                this.handlePlayerAction(message);
-                break;
-            case 'playerHit':
-                this.handlePlayerHit(message);
-                break;
-            case 'playerEliminated':
-                this.handlePlayerEliminated(message);
-                break;
-            case 'playerScored':
-                this.handlePlayerScored(message);
-                break;
-            case 'roundEnded':
-                this.handleRoundEnded(message);
-                break;
-            case 'gameEnded':
-                this.handleGameEnded(message);
-                break;
-            case 'lobbyReset':
-                this.handleLobbyReset(message);
-                break;
-            case 'chat':
-                this.handleChatMessage(message);
-                break;
+                
             case 'error':
-                this.handleError(message);
+                alert(`Server error: ${message.message}`);
                 break;
+                
+            case 'lobbyList':
+                // Handle lobby list
+                break;
+                
+            default:
+                console.log('Unhandled message type:', message.type);
         }
     }
     
-    // Message handlers
-    handleWelcome(message) {
-        this.playerId = message.playerId;
-        this.playerName = message.name || this.playerName;
-        document.getElementById('player-name').value = this.playerName;
-    }
-    
-    handleLobbyList(message) {
-        this.updateLobbyList(message.lobbies || []);
-    }
-    
-    handleLobbyCreated(message) {
-        this.lobbyId = message.lobbyId;
-        this.isHost = message.isHost;
-        this.showScreen('lobby');
-        this.requestLobbyInfo();
-    }
-    
-    handleLobbyInfo(message) {
-        this.lobbyId = message.lobbyId;
-        this.isHost = message.hostId === this.playerId;
-        this.updateLobbyInfo(message);
-    }
-    
-    handlePlayerJoined(message) {
-        this.addOtherPlayer(message.playerId, message.name, message.color);
-        this.updatePlayerCount();
-    }
-    
-    handlePlayerLeft(message) {
-        this.removeOtherPlayer(message.playerId);
-        this.updatePlayerCount();
-    }
-    
-    handlePlayerReady(message) {
-        this.updatePlayerReady(message.playerId, message.ready);
-    }
-    
-    handleNewHost(message) {
-        this.isHost = message.hostId === this.playerId;
-        this.updateHost(message.hostId);
-    }
-    
-    handleGameStarting(message) {
-        this.showGameCountdown(message.countdown);
-    }
-    
-    handleGameCountdown(message) {
-        this.updateCountdown(message.countdown);
-    }
-    
-    handleRoundStarted(message) {
-        this.startMultiplayerGame(message);
-    }
-    
-    handleEnemiesSpawned(message) {
-        this.addServerEnemies(message.enemies);
-    }
-    
-    handlePlayerMoved(message) {
-        this.updateOtherPlayerPosition(message.playerId, message.position);
-    }
-    
-    handlePlayerAction(message) {
-        // Handle other player actions (dash, etc.)
-        if (message.action.type === 'dash') {
-            this.showPlayerDashEffect(message.playerId);
-        }
-    }
-    
-    handlePlayerHit(message) {
-        this.updatePlayerLives(message.playerId, message.lives);
-    }
-    
-    handlePlayerEliminated(message) {
-        this.markPlayerEliminated(message.playerId);
-    }
-    
-    handlePlayerScored(message) {
-        this.updatePlayerScore(message.playerId, message.totalScore);
-    }
-    
-    handleRoundEnded(message) {
-        this.showRoundEnd(message);
-    }
-    
-    handleGameEnded(message) {
-        this.showGameEnd(message);
-    }
-    
-    handleLobbyReset(message) {
-        this.resetLobby();
-    }
-    
-    handleChatMessage(message) {
-        this.addChatMessage(message.playerName, message.text, message.timestamp);
-    }
-    
-    handleError(message) {
-        this.showError(message.message || 'An error occurred');
-    }
-    
-    // UI Methods
-    showScreen(screen) {
-        // Hide all screens
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('multiplayer-screen').style.display = 'none';
-        document.getElementById('lobby-screen').style.display = 'none';
-        document.getElementById('game-over').style.display = 'none';
-        document.getElementById('multiplayer-game-overlay').style.display = 'none';
-        
-        // Show requested screen
-        switch(screen) {
-            case 'start':
-                document.getElementById('start-screen').style.display = 'flex';
-                break;
-            case 'multiplayer':
-                document.getElementById('multiplayer-screen').style.display = 'flex';
-                break;
-            case 'lobby':
-                document.getElementById('lobby-screen').style.display = 'flex';
-                break;
-            case 'game':
-                document.getElementById('multiplayer-game-overlay').style.display = 'block';
-                // Hide canvas overlays
-                document.getElementById('game-over').style.display = 'none';
-                break;
-        }
-    }
-    
-    updateLobbyList(lobbies) {
-        const lobbyList = document.getElementById('lobby-list');
-        if (!lobbyList) return;
-        
-        if (lobbies.length === 0) {
-            lobbyList.innerHTML = '<div class="lobby-item empty">No lobbies available</div>';
-            return;
-        }
-        
-        lobbyList.innerHTML = lobbies.map(lobby => `
-            <div class="lobby-item" data-lobby-id="${lobby.id}">
-                <div class="lobby-info">
-                    <div class="lobby-name">${lobby.name}</div>
-                    <div class="lobby-host">Host: ${lobby.hostName}</div>
-                </div>
-                <div class="lobby-stats">
-                    ${lobby.playerCount}/${lobby.maxPlayers} players
-                </div>
-            </div>
-        `).join('');
-        
-        // Add click handlers
-        lobbyList.querySelectorAll('.lobby-item:not(.empty)').forEach(item => {
-            item.addEventListener('click', () => {
-                const lobbyId = item.dataset.lobbyId;
-                this.joinLobby(lobbyId);
+    // Game integration methods
+    sendPlayerPosition(x, y) {
+        if (this.connected) {
+            this.sendToServer({
+                type: 'playerMove',
+                x: x,
+                y: y
             });
-        });
+        }
     }
     
-    updateLobbyInfo(info) {
-        // Update lobby title
-        document.getElementById('lobby-title').textContent = info.lobbyName;
-        document.getElementById('lobby-name-display').textContent = info.lobbyName;
-        
-        // Update players list
-        this.updatePlayersList(info.players);
-        
-        // Update start button
-        const startBtn = document.getElementById('start-game');
-        startBtn.disabled = !this.isHost;
-        
-        // Update player count
-        this.updatePlayerCount();
-    }
-    
-    updatePlayersList(players) {
-        const playersList = document.getElementById('players-list');
-        if (!playersList) return;
-        
-        // Clear other players
-        this.otherPlayers.clear();
-        
-        playersList.innerHTML = players.map(player => {
-            // Store player info
-            this.otherPlayers.set(player.id, {
-                id: player.id,
-                name: player.name,
-                color: player.color,
-                ready: player.ready,
-                isHost: player.isHost,
-                position: { x: 400, y: 300 },
-                score: 0,
-                lives: 3
+    sendPlayerAction(action) {
+        if (this.connected) {
+            this.sendToServer({
+                type: 'playerAction',
+                action: action
             });
-            
-            return `
-                <div class="player-card ${player.isHost ? 'host' : ''} ${player.ready ? 'ready' : ''}" 
-                     data-player-id="${player.id}">
-                    ${player.isHost ? '<div class="host-badge">HOST</div>' : ''}
-                    <div class="player-color" style="background: ${player.color}"></div>
-                    <div class="player-name">${player.name}</div>
-                    <div class="player-status ${player.ready ? 'ready' : ''}">
-                        ${player.ready ? 'READY' : 'NOT READY'}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    updatePlayerCount() {
-        const playerCount = document.getElementById('player-count');
-        if (playerCount && this.lobbyId) {
-            const count = this.otherPlayers.size + 1; // +1 for self
-            playerCount.textContent = `${count}/4 players`;
         }
     }
-    
-    showGameCountdown(countdown) {
-        const countdownElem = document.getElementById('game-countdown');
-        const timerElem = document.getElementById('countdown-timer');
-        
-        if (countdownElem && timerElem) {
-            countdownElem.style.display = 'block';
-            timerElem.textContent = countdown;
-        }
-    }
-    
-    updateCountdown(countdown) {
-        const timerElem = document.getElementById('countdown-timer');
-        if (timerElem) {
-            timerElem.textContent = countdown;
-        }
-    }
-    
-    // Game Methods
-    startMultiplayerGame(message) {
-        // Hide countdown
-        document.getElementById('game-countdown').style.display = 'none';
-        
-        // Show game screen
-        this.showScreen('game');
-        
-        // Reset game state
-        this.game.resetGameState();
-        this.game.gameState = 'playing';
-        this.game.roundActive = true;
-        this.game.roundDuration = message.duration;
-        this.game.level = message.round;
-        
-        // Clear server enemies
-        this.serverEnemies.clear();
-        
-        // Update scores display
-        this.updateScoresDisplay();
-    }
-    
-    updateScoresDisplay() {
-        const scoresElem = document.getElementById('player-scores');
-        if (!scoresElem) return;
-        
-        // Add self to scores
-        const players = Array.from(this.otherPlayers.values());
-        players.unshift({
-            id: this.playerId,
-            name: this.playerName,
-            color: '#00ffea',
-            score: this.game.score,
-            lives: this.game.lives,
-            isYou: true
-        });
-        
-        scoresElem.innerHTML = players.map(player => `
-            <div class="score-item ${player.isYou ? 'you' : ''}">
-                <div class="score-player">
-                    <div class="score-color" style="background: ${player.color}"></div>
-                    <div class="score-name">${player.name}</div>
-                </div>
-                <div class="score-info">
-                    <span class="score-value">${player.score}</span>
-                    <span class="score-lives">❤️ ${player.lives}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // Server Communication Methods
-    requestLobbyList() {
-        this.sendToServer({ type: 'getLobbies' });
-    }
-    
-    requestLobbyInfo() {
-        if (this.lobbyId) {
-            this.sendToServer({ type: 'getLobbyInfo', lobbyId: this.lobbyId });
-        }
-    }
-    
-    setPlayerName(name) {
-        this.playerName = name;
-        this.sendToServer({ type: 'setName', name });
-    }
-    
-    createLobby(name) {
-        this.sendToServer({ type: 'createLobby', name });
-    }
-    
-    joinLobby(lobbyId) {
-        this.sendToServer({ type: 'joinLobby', lobbyId });
-    }
-    
-    leaveLobby() {
-        this.sendToServer({ type: 'leaveLobby' });
-        this.lobbyId = null;
-        this.isHost = false;
-        this.otherPlayers.clear();
-        this.showScreen('multiplayer');
-        this.requestLobbyList();
-    }
-    
-    setReady(ready) {
-        this.sendToServer({ type: 'setReady', ready });
-    }
-    
-    startGame() {
-        if (this.isHost) {
-            this.sendToServer({ type: 'startGame' });
-        }
-    }
-    
-    sendChatMessage(text = null) {
-        if (!text) {
-            const input = document.getElementById('chat-input');
-            text = input.value.trim();
-            input.value = '';
-        }
-        
-        if (text) {
-            this.sendToServer({ type: 'chat', text });
-        }
-    }
-    
-    sendPlayerMove(position) {
-        if (this.lobbyId && this.game.gameState === 'playing') {
-            this.sendToServer({ type: 'playerMove', position });
-        }
-    }
-    
-    sendPlayerAction(action)
+}
+
+// Export for use in game.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = MultiplayerClient;
+}

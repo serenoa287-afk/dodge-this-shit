@@ -4,11 +4,12 @@
   "description": "Browser JavaScript game similar to Warcraft 3 custom map Dodge This Shit - now with multiplayer and progressive difficulty",
   "main": "server.js",
   "scripts": {
-    "start": "node combined-server.js",
-    "dev": "node combined-server.js",
-    "serve": "node combined-server.js",
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "node server.js",
     "single": "node server.js",
     "multiplayer": "node multiplayer-server.js",
+    "both": "concurrently \"node server.js\" \"node multiplayer-server.js\"",
     "test": "echo \"No tests yet\" && exit 0"
   },
   "keywords": [
