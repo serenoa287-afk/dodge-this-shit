@@ -237,6 +237,12 @@ class SimpleLobbyServer {
         });
         
         console.log(`Player ${player.name} left lobby (${this.lobbyPlayers.size}/4)`);
+        
+        // If game is active and no players left in lobby, stop the game
+        if (this.gameActive && this.lobbyPlayers.size === 0) {
+            console.log('🛑 All players left the game, stopping game...');
+            this.endGame();
+        }
     }
     
     checkStartGame() {
@@ -501,47 +507,56 @@ class SimpleLobbyServer {
     }
     
     endGame() {
+        console.log('🛑 Ending game...');
         this.gameActive = false;
         if (this.gameLoop) {
             clearInterval(this.gameLoop);
             this.gameLoop = null;
         }
         
-        // Calculate winner
-        let winner = null;
-        let highestScore = -1;
+        // Clear game state
+        this.gameState = null;
         
-        this.lobbyPlayers.forEach(playerId => {
-            const player = this.players.get(playerId);
-            if (player && player.score > highestScore) {
-                highestScore = player.score;
-                winner = player;
-            }
-        });
-        
-        this.broadcastToLobby({
-            type: 'gameEnded',
-            winnerName: winner?.name,
-            finalScores: Array.from(this.lobbyPlayers).map(playerId => {
+        // Only calculate winner and broadcast if there are still players in lobby
+        if (this.lobbyPlayers.size > 0) {
+            // Calculate winner
+            let winner = null;
+            let highestScore = -1;
+            
+            this.lobbyPlayers.forEach(playerId => {
                 const player = this.players.get(playerId);
-                return [playerId, player?.score || 0];
-            })
-        });
-        
-        // Clear lobby after game
-        setTimeout(() => {
-            this.lobbyPlayers.clear();
-            this.players.forEach(player => {
-                player.inLobby = false;
-                player.ready = false;
+                if (player && player.score > highestScore) {
+                    highestScore = player.score;
+                    winner = player;
+                }
             });
             
-            this.broadcastToAll({
-                type: 'playerCountUpdate',
-                totalPlayers: this.players.size,
-                lobbyPlayers: 0
+            this.broadcastToLobby({
+                type: 'gameEnded',
+                winnerName: winner?.name,
+                finalScores: Array.from(this.lobbyPlayers).map(playerId => {
+                    const player = this.players.get(playerId);
+                    return [playerId, player?.score || 0];
+                })
             });
-        }, 10000);
+            
+            // Clear lobby after game
+            setTimeout(() => {
+                this.lobbyPlayers.clear();
+                this.players.forEach(player => {
+                    player.inLobby = false;
+                    player.ready = false;
+                });
+                
+                this.broadcastToAll({
+                    type: 'playerCountUpdate',
+                    totalPlayers: this.players.size,
+                    lobbyPlayers: 0
+                });
+            }, 10000);
+        } else {
+            console.log('✅ Game stopped, no players in lobby');
+        }
     }
     
     broadcastGameState() {
