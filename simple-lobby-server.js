@@ -673,8 +673,8 @@ class SimpleLobbyServer {
         
         const enemy = this.createEnemy(x, y, velocityX, velocityY, level);
         this.gameState.enemies.push(enemy);
-        const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
-        console.log(`  Spawned ${enemy.type} enemy at (${x.toFixed(0)}, ${y.toFixed(0)}) speed=${speed.toFixed(3)} multiplier=${enemy.speedMultiplier}`);
+        const actualSpeed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
+        console.log(`  Spawned ${enemy.type} enemy at (${x.toFixed(0)}, ${y.toFixed(0)}) speed=${actualSpeed.toFixed(3)} multiplier=${enemy.speedMultiplier}`);
     }
     
     spawnRowPattern() {
