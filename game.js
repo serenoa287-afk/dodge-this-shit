@@ -177,6 +177,31 @@ class Game {
     }
     
     restartGame() {
+        // In multiplayer, exit to title screen and leave lobby
+        if (this.isMultiplayer && this.multiplayer) {
+            console.log('🛑 Restart button pressed in multiplayer - exiting to title');
+            
+            // Leave the lobby
+            if (this.multiplayer.leaveLobby) {
+                this.multiplayer.leaveLobby();
+            }
+            
+            // Reset game state
+            this.gameState = 'start';
+            this.startScreen.style.display = 'flex';
+            this.gameOverScreen.style.display = 'none';
+            this.resetGameState();
+            
+            // Reset multiplayer state
+            this.isMultiplayer = false;
+            this.multiplayer = null;
+            this.playerDead = false;
+            this.playerDeathTime = 0;
+            
+            return;
+        }
+        
+        // Single player: restart normally
         this.startGame();
     }
     
