@@ -771,7 +771,7 @@ class Game {
             });
         }
         
-        // Draw enemies
+        // Draw local enemies (single player only)
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         
         // Draw HUD
@@ -1025,49 +1025,7 @@ class Game {
     }
     
     // Update draw method to include other players
-    draw() {
-        // Draw grid background
-        this.drawGrid();
-        
-        // Draw other players (multiplayer)
-        this.otherPlayers.forEach((player, playerId) => {
-            if (!player.eliminated) {
-                this.ctx.fillStyle = player.hitFlash ? '#ff0000' : player.color;
-                this.ctx.beginPath();
-                this.ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-                this.ctx.fill();
-                
-                // Draw dash effect
-                if (player.isDashing) {
-                    this.ctx.strokeStyle = '#ffffff';
-                    this.ctx.lineWidth = 3;
-                    this.ctx.beginPath();
-                    this.ctx.arc(player.x, player.y, player.radius + 5, 0, Math.PI * 2);
-                    this.ctx.stroke();
-                }
-                
-                // Draw player name (if available)
-                if (this.multiplayer) {
-                    const mpPlayer = this.multiplayer.players.get(playerId);
-                    if (mpPlayer) {
-                        this.ctx.fillStyle = '#ffffff';
-                        this.ctx.font = '12px Arial';
-                        this.ctx.textAlign = 'center';
-                        this.ctx.fillText(mpPlayer.name, player.x, player.y - player.radius - 10);
-                    }
-                }
-            }
-        });
-        
-        // Draw player
-        this.player.draw(this.ctx);
-        
-        // Draw enemies
-        this.enemies.forEach(enemy => enemy.draw(this.ctx));
-        
-        // Draw HUD
-        this.drawHUD();
-    }
+
     
     // Update spawn patterns with progressive difficulty
     getPatternType(roundProgress) {
