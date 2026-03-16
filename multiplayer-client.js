@@ -15,6 +15,16 @@ script.onload = () => {
                 // Create the actual simple lobby client
                 this.simpleClient = new SimpleLobbyClient(game);
                 
+                // Proxy properties
+                Object.defineProperty(this, 'gameActive', {
+                    get: () => this.simpleClient.gameActive,
+                    set: (value) => { this.simpleClient.gameActive = value; }
+                });
+                
+                Object.defineProperty(this, 'players', {
+                    get: () => this.simpleClient.lobbyPlayers || new Map()
+                });
+                
                 // Proxy methods that game.js expects
                 this.updateGameForMultiplayer = () => {
                     console.log('updateGameForMultiplayer called');
@@ -33,8 +43,9 @@ script.onload = () => {
                     return this.simpleClient.sendMove?.(x, y);
                 };
                 
-                this.gameActive = false;
-                this.players = new Map();
+                this.showLobbyMenu = () => {
+                    return this.simpleClient.showLobbyMenu?.();
+                };
             }
         };
         
