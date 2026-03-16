@@ -98,12 +98,12 @@ class SimpleLobbyServer {
                 player.ready = message.ready;
                 console.log(`Player ${player.name} ready: ${player.ready}`);
                 
-                // Broadcast to lobby
+                // Broadcast to lobby (include sender so their UI updates)
                 this.broadcastToLobby({
                     type: 'playerReady',
                     playerId: playerId,
                     ready: player.ready
-                }, playerId);
+                });
                 
                 // Check if all lobby players are ready
                 this.checkStartGame();
@@ -282,7 +282,9 @@ class SimpleLobbyServer {
     startGame() {
         if (this.gameActive) return;
         
-        console.log(`Starting game with ${this.lobbyPlayers.size} players`);
+        console.log(`🎮 Starting game with ${this.lobbyPlayers.size} players`);
+        console.log(`   Round duration: ${this.ROUND_DURATION}ms`);
+        console.log(`   Enemy spawn interval: ${this.ENEMY_SPAWN_INTERVAL}ms`);
         
         this.gameActive = true;
         this.gameState = {
@@ -327,6 +329,7 @@ class SimpleLobbyServer {
         if (this.gameLoop) clearInterval(this.gameLoop);
         
         const GAME_TICK = 1000 / 60;
+        console.log(`🔄 Starting game loop (${GAME_TICK.toFixed(1)}ms tick)`);
         this.gameLoop = setInterval(() => {
             this.updateGame();
         }, GAME_TICK);
@@ -555,14 +558,17 @@ class SimpleLobbyServer {
             name: player.name
         }));
         
-        this.broadcastToLobby({
+        const message = {
             type: 'gameStateUpdate',
             round: this.gameState.round,
             roundTimer: Math.max(0, this.gameState.roundTimer),
             enemies: this.gameState.enemies,
             level: this.gameState.level,
             players: playerStates
-        });
+        };
+        
+        console.log(`📤 Broadcasting game state: ${this.gameState.enemies.length} enemies, ${playerStates.length} players`);
+        this.broadcastToLobby(message);
     }
     
     getLobbyPlayers() {
