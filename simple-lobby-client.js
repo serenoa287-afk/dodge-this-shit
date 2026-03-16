@@ -345,7 +345,7 @@ class SimpleLobbyClient {
                 
             case 'roundEnded':
                 console.log(`🎉 Round ${message.round} complete! Next round in ${message.delay/1000}s`);
-                this.showMessage(`Round ${message.round} Complete!`);
+                this.showRoundComplete(message.round, message.delay);
                 break;
                 
             case 'roundStarted':
@@ -401,12 +401,32 @@ class SimpleLobbyClient {
                 break;
                 
             case 'roundEnded':
-                this.showMessage(`Round ${message.round} complete! Starting round ${message.nextRound}`);
+                console.log(`🎉 Round ${message.round} complete! Next round in ${message.delay/1000}s`);
+                this.showRoundComplete(message.round, message.delay);
                 break;
                 
             case 'gameEnded':
                 this.gameActive = false;
-                this.showMessage(`Game over! Winner: ${message.winnerName}`);
+                this.hideLobbyMenu();
+                
+                // Return to title screen
+                if (message.backToTitle) {
+                    console.log('🛑 Game ended, returning to title screen');
+                    if (this.game) {
+                        // Reset game state
+                        this.game.gameState = 'start';
+                        this.game.startScreen.style.display = 'flex';
+                        this.game.gameOverScreen.style.display = 'none';
+                        this.game.resetGameState();
+                    }
+                }
+                
+                // Show winner if available
+                if (message.winnerName) {
+                    this.showMessage(`Game over! Winner: ${message.winnerName}`);
+                } else if (message.message) {
+                    this.showMessage(message.message);
+                }
                 break;
                 
             case 'error':
@@ -507,7 +527,7 @@ class SimpleLobbyClient {
     }
     
     updateGameState(message) {
-        console.log(`📊 Game state update: ${message.enemies?.length || 0} enemies, ${message.players?.length || 0} players`);
+        console.log(`📊 Game state update: ${message.enemies?.length || 0} enemies, ${message.players?.length || 0} players, roundTimer: ${message.roundTimer}`);
         
         // Update server enemies
         this.serverEnemies.clear();
@@ -516,6 +536,15 @@ class SimpleLobbyClient {
                 this.serverEnemies.set(enemy.id, enemy);
                 console.log(`  Enemy ${enemy.id}: (${enemy.x.toFixed(0)}, ${enemy.y.toFixed(0)}) radius=${enemy.radius}`);
             });
+        }
+        
+        // Update game round timer (for HUD display)
+        if (this.game && message.roundTimer !== undefined) {
+            // Convert server timer to local timer
+            // Server timer counts DOWN from 10000 to 0
+            // Game timer counts UP from 0 to 10000 (for HUD calculation)
+            const timeElapsed = 10000 - message.roundTimer;
+            this.game.roundTimer = timeElapsed;
         }
         
         // Update other player positions
@@ -699,6 +728,40 @@ class SimpleLobbyClient {
                 messageDiv.parentNode.removeChild(messageDiv);
             }
         }, 3000);
+    }
+    
+    showRoundComplete(roundNumber, delay) {
+        const roundDiv = document.createElement('div');
+        roundDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ffea;
+            padding: 30px 60px;
+            border-radius: 15px;
+            border: 4px solid #00ffea;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 24px;
+            text-align: center;
+            z-index: 1001;
+            pointer-events: none;
+            box-shadow: 0 0 30px rgba(0, 255, 234, 0.5);
+        `;
+        roundDiv.innerHTML = `
+            <div style="margin-bottom: 20px;">🎉 ROUND ${roundNumber} COMPLETE! 🎉</div>
+            <div style="font-size: 16px; color: #ffffff;">Next round starting in ${delay/1000} seconds...</div>
+        `;
+        
+        document.body.appendChild(roundDiv);
+        
+        // Remove after the delay (or slightly before next round starts)
+        setTimeout(() => {
+            if (roundDiv.parentNode) {
+                roundDiv.parentNode.removeChild(roundDiv);
+            }
+        }, delay - 100); // Remove 100ms before next round starts
     }
 }
 

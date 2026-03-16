@@ -917,47 +917,40 @@ class SimpleLobbyServer {
         
         // Clear game state
         this.gameState = null;
-        
-        // Only calculate winner and broadcast if there are still players in lobby
-        if (this.lobbyPlayers.size > 0) {
-            // Calculate winner
-            let winner = null;
-            let highestScore = -1;
-            
-            this.lobbyPlayers.forEach(playerId => {
-                const player = this.players.get(playerId);
-                if (player && player.score > highestScore) {
-                    highestScore = player.score;
-                    winner = player;
-                }
-            });
-            
-            this.broadcastToLobby({
-                type: 'gameEnded',
-                winnerName: winner?.name,
-                finalScores: Array.from(this.lobbyPlayers).map(playerId => {
-                    const player = this.players.get(playerId);
-                    return [playerId, player?.score || 0];
-                })
-            });
-            
-            // Clear lobby after game
-            setTimeout(() => {
-                this.lobbyPlayers.clear();
-                this.players.forEach(player => {
-                    player.inLobby = false;
-                    player.ready = false;
-                });
-                
-                this.broadcastToAll({
-                    type: 'playerCountUpdate',
-                    totalPlayers: this.players.size,
-                    lobbyPlayers: 0
-                });
-            }, 10000);
-        } else {
-            console.log('✅ Game stopped, no players in lobby');
+        this.betweenRounds = false;
+        if (this.roundEndTimer) {
+            clearTimeout(this.roundEndTimer);
+            this.roundEndTimer = null;
         }
+        
+        // Send all players back to title screen
+        this.broadcastToLobby({
+            type: 'gameEnded',
+            backToTitle: true,
+            message: 'Game Over! All players died.'
+        });
+        
+        // Clear lobby immediately
+        this.lobbyPlayers.forEach(playerId => {
+            const player = this.players.get(playerId);
+            if (player) {
+                player.inLobby = false;
+                player.ready = false;
+                player.score = 0;
+                player.lives = 3;
+            }
+        });
+        
+        this.lobbyPlayers.clear();
+        
+        // Update player counts
+        this.broadcastToAll({
+            type: 'playerCountUpdate',
+            totalPlayers: this.players.size,
+            lobbyPlayers: 0
+        });
+        
+        console.log('✅ Game ended, players returned to title screen');
     }
     
     broadcastGameState() {
