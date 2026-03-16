@@ -793,24 +793,24 @@ class SimpleLobbyClient {
         const gameOverDiv = document.createElement('div');
         gameOverDiv.style.cssText = `
             position: fixed;
-            top: 50%;
+            top: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
             color: #ff0000;
-            padding: 20px 40px;
-            border-radius: 10px;
-            border: 3px solid #ff0000;
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #ff0000;
             font-family: 'Press Start 2P', cursive;
-            font-size: 20px;
+            font-size: 16px;
             text-align: center;
             z-index: 1002;
             pointer-events: none;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
         `;
         gameOverDiv.innerHTML = `
-            <div style="margin-bottom: 15px;">💀 ${message} 💀</div>
-            <div style="font-size: 14px; color: #ffffff;">Returning to menu in 3 seconds...</div>
+            <div>💀 ${message} 💀</div>
+            <div style="font-size: 12px; color: #ffffff; margin-top: 5px;">Returning to menu in 3 seconds...</div>
         `;
         
         document.body.appendChild(gameOverDiv);

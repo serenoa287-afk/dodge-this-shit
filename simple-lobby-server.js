@@ -509,31 +509,31 @@ class SimpleLobbyServer {
             weights = [1.0, 0, 0, 0, 0, 0];
         } else if (level === 2) {
             // Level 2: Basic + occasional fast
-            weights = [0.8, 0.2, 0, 0, 0, 0];
+            weights = [0.7, 0.3, 0, 0, 0, 0];
         } else if (level === 3) {
-            // Level 3: Basic, fast, occasional chaser
-            weights = [0.6, 0.3, 0, 0, 0.1, 0];
+            // Level 3: Basic, fast, more chasers
+            weights = [0.5, 0.3, 0, 0, 0.2, 0];
         } else if (level === 4) {
-            // Level 4: More variety
-            weights = [0.5, 0.3, 0.1, 0, 0.1, 0];
+            // Level 4: Introduce tanks
+            weights = [0.4, 0.3, 0.1, 0, 0.2, 0];
         } else if (level === 5) {
-            // Level 5: Introduce splitter
-            weights = [0.4, 0.3, 0.1, 0.1, 0.1, 0];
+            // Level 5: Introduce splitters
+            weights = [0.3, 0.25, 0.1, 0.15, 0.2, 0];
         } else if (level === 6) {
-            // Level 6: More chasers
-            weights = [0.3, 0.3, 0.1, 0.1, 0.2, 0];
+            // Level 6: More variety
+            weights = [0.2, 0.2, 0.15, 0.15, 0.2, 0.1];
         } else if (level === 7) {
-            // Level 7: Introduce stalker
-            weights = [0.2, 0.25, 0.15, 0.1, 0.2, 0.1];
+            // Level 7: Introduce stalkers
+            weights = [0.15, 0.15, 0.15, 0.15, 0.2, 0.2];
         } else if (level === 8) {
             // Level 8: More stalkers
-            weights = [0.15, 0.2, 0.15, 0.1, 0.2, 0.2];
+            weights = [0.1, 0.1, 0.15, 0.15, 0.25, 0.25];
         } else if (level === 9) {
             // Level 9: Intense mix
-            weights = [0.1, 0.15, 0.15, 0.15, 0.25, 0.2];
+            weights = [0.05, 0.1, 0.15, 0.2, 0.25, 0.25];
         } else if (level >= 10) {
             // Level 10: Final boss level - all types
-            weights = [0.05, 0.1, 0.2, 0.2, 0.25, 0.2];
+            weights = [0.02, 0.08, 0.15, 0.2, 0.25, 0.3];
         }
         
         const random = Math.random();
@@ -943,6 +943,12 @@ class SimpleLobbyServer {
                         if (allPlayersDead && !this.gameOverTriggered) {
                             console.log('💀 All players dead! Showing game over screen...');
                             this.gameOverTriggered = true;
+                            
+                            // Pause the game loop
+                            if (this.gameLoop) {
+                                clearInterval(this.gameLoop);
+                                this.gameLoop = null;
+                            }
                             
                             // Broadcast game over
                             this.broadcastToLobby({
