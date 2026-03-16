@@ -5,7 +5,7 @@ class Game {
         this.ctx = this.canvas.getContext('2d');
         
         // Game state
-        this.gameState = 'start'; // 'start', 'playing', 'paused', 'gameover'
+        this.gameState = 'start'; // 'start', 'playing', 'gameover'
         this.score = 0;
         this.level = 1;
         this.lives = 3;
@@ -36,24 +36,13 @@ class Game {
         this.mousePos = { x: 0, y: 0 };
         
         // UI elements
-        this.pauseBtn = document.getElementById('pause-btn');
         this.restartBtn = document.getElementById('restart-btn');
         this.singlePlayerBtn = document.getElementById('single-player-btn');
         this.multiplayerLobbyBtn = document.getElementById('multiplayer-lobby-btn');
         this.gameOverScreen = document.getElementById('game-over');
         this.startScreen = document.getElementById('start-screen');
         
-        // Multiplayer button
-        this.multiplayerBtn = document.createElement('button');
-        this.multiplayerBtn.id = 'multiplayer-btn';
-        this.multiplayerBtn.className = 'btn btn-primary';
-        this.multiplayerBtn.textContent = 'Online Multiplayer';
-        
-        // Add multiplayer button to start screen
-        const startScreenControls = this.startScreen.querySelector('.instructions');
-        if (startScreenControls) {
-            startScreenControls.appendChild(this.multiplayerBtn);
-        }
+
         
         this.init();
     }
@@ -86,11 +75,6 @@ class Game {
         // Keyboard input
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
-            
-            // Pause with P key
-            if (e.key.toLowerCase() === 'p') {
-                this.togglePause();
-            }
         });
         
         window.addEventListener('keyup', (e) => {
@@ -114,7 +98,6 @@ class Game {
         });
         
         // Button events
-        this.pauseBtn.addEventListener('click', () => this.togglePause());
         this.restartBtn.addEventListener('click', () => this.restartGame());
         this.singlePlayerBtn.addEventListener('click', () => {
             this.isMultiplayer = false;
@@ -132,10 +115,7 @@ class Game {
             window.open('https://github.com/serenoa287-afk/dodge-this-shit', '_blank');
         });
         
-        // Multiplayer button in start screen
-        this.multiplayerBtn.addEventListener('click', () => {
-            this.startMultiplayer();
-        });
+
     }
     
     startGame() {
@@ -798,17 +778,6 @@ class Game {
         if (!this.isMultiplayer) {
             this.drawHUD();
         }
-        
-        // Draw pause overlay
-        if (this.gameState === 'paused') {
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-            
-            this.ctx.fillStyle = '#00ffea';
-            this.ctx.font = '40px "Press Start 2P"';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
-        }
     }
     
     drawOtherPlayer(player) {
@@ -1098,17 +1067,6 @@ class Game {
         
         // Draw HUD
         this.drawHUD();
-        
-        // Draw pause overlay
-        if (this.gameState === 'paused') {
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-            
-            this.ctx.fillStyle = '#00ffea';
-            this.ctx.font = '40px "Press Start 2P"';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
-        }
     }
     
     // Update spawn patterns with progressive difficulty
