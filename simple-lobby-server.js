@@ -550,62 +550,70 @@ class SimpleLobbyServer {
     }
     
     getEnemyProperties(type, level) {
-        let radius, speedMultiplier, health, damage, color;
+        let radius, speedMultiplier, health, damage, color, glowColor;
         
         // ALL enemies must be slower than player speed (0.3)
         // Player speed = 0.3, so speedMultiplier should be < 1.0
+        // Use EXACT same colors as enemy.js (single player)
         switch(type) {
             case 'basic':
                 radius = 10 + Math.random() * 5;
                 speedMultiplier = 0.9; // 10% slower than player
                 health = 1;
                 damage = 1;
-                color = '#ff0000'; // Red
+                color = '#ff6b6b'; // Coral red (same as enemy.js)
+                glowColor = 'rgba(255, 107, 107, 0.5)';
                 break;
             case 'fast':
                 radius = 8 + Math.random() * 4;
                 speedMultiplier = 0.95; // Only 5% slower than player (not actually fast)
                 health = 1;
                 damage = 1;
-                color = '#ffff00'; // Yellow
+                color = '#ffa500'; // Orange (same as enemy.js)
+                glowColor = 'rgba(255, 165, 0, 0.5)';
                 break;
             case 'tank':
                 radius = 15 + Math.random() * 10;
                 speedMultiplier = 0.6; // 40% slower than player
                 health = 2 + Math.floor(level / 3);
                 damage = 2;
-                color = '#0000ff'; // Blue
+                color = '#8b0000'; // Dark red (same as enemy.js)
+                glowColor = 'rgba(139, 0, 0, 0.5)';
                 break;
             case 'splitter':
                 radius = 12 + Math.random() * 6;
                 speedMultiplier = 0.85; // 15% slower than player
                 health = 1;
                 damage = 1;
-                color = '#00ff00'; // Green
+                color = '#9400d3'; // Purple (same as enemy.js)
+                glowColor = 'rgba(148, 0, 211, 0.5)';
                 break;
             case 'chaser':
                 radius = 9 + Math.random() * 4;
                 speedMultiplier = 0.8; // 20% slower than player (HOMING = must be slow)
                 health = 1;
                 damage = 1;
-                color = '#ff9900'; // Orange
+                color = '#00ff00'; // Green when chasing (same as enemy.js)
+                glowColor = 'rgba(0, 255, 0, 0.5)';
                 break;
             case 'stalker':
                 radius = 11 + Math.random() * 5;
                 speedMultiplier = 0.75; // 25% slower than player (HOMING = must be slow)
                 health = 1;
                 damage = 1;
-                color = '#ff00ff'; // Purple
+                color = '#ff00ff'; // Magenta when chasing (same as enemy.js)
+                glowColor = 'rgba(255, 0, 255, 0.5)';
                 break;
             default:
                 radius = 10;
                 speedMultiplier = 0.9;
                 health = 1;
                 damage = 1;
-                color = '#ff0000';
+                color = '#ff6b6b';
+                glowColor = 'rgba(255, 107, 107, 0.5)';
         }
         
-        return { radius, speedMultiplier, health, damage, color };
+        return { radius, speedMultiplier, health, damage, color, glowColor };
     }
     
     createEnemy(x, y, velocityX, velocityY, level, forceType = null) {
@@ -629,6 +637,7 @@ class SimpleLobbyServer {
             radius: props.radius,
             type: enemyType,
             color: props.color,
+            glowColor: props.glowColor,
             health: props.health,
             damage: props.damage
         };
