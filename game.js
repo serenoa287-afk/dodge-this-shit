@@ -100,8 +100,8 @@ class Game {
         // Button events
         this.restartBtn.addEventListener('click', () => this.restartGame());
         this.singlePlayerBtn.addEventListener('click', () => {
-            this.isMultiplayer = false;
-            this.startGame();
+            // Single player = multiplayer with 1 player
+            this.startMultiplayer();
         });
         
         this.multiplayerLobbyBtn.addEventListener('click', () => {
