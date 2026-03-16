@@ -552,53 +552,54 @@ class SimpleLobbyServer {
     getEnemyProperties(type, level) {
         let radius, speedMultiplier, health, damage, color;
         
-        // Use EXACT same values as enemy.js (game.js single player)
+        // ALL enemies must be slower than player speed (0.3)
+        // Player speed = 0.3, so speedMultiplier should be < 1.0
         switch(type) {
             case 'basic':
                 radius = 10 + Math.random() * 5;
-                speedMultiplier = 1.0;
+                speedMultiplier = 0.9; // 10% slower than player
                 health = 1;
                 damage = 1;
                 color = '#ff0000'; // Red
                 break;
             case 'fast':
                 radius = 8 + Math.random() * 4;
-                speedMultiplier = 1.5; // Same as enemy.js
+                speedMultiplier = 0.95; // Only 5% slower than player (not actually fast)
                 health = 1;
                 damage = 1;
                 color = '#ffff00'; // Yellow
                 break;
             case 'tank':
                 radius = 15 + Math.random() * 10;
-                speedMultiplier = 0.7;
+                speedMultiplier = 0.6; // 40% slower than player
                 health = 2 + Math.floor(level / 3);
                 damage = 2;
                 color = '#0000ff'; // Blue
                 break;
             case 'splitter':
                 radius = 12 + Math.random() * 6;
-                speedMultiplier = 1.2; // Same as enemy.js
+                speedMultiplier = 0.85; // 15% slower than player
                 health = 1;
                 damage = 1;
                 color = '#00ff00'; // Green
                 break;
             case 'chaser':
-                radius = 9 + Math.random() * 4; // Same as enemy.js
-                speedMultiplier = 1.3; // Same as enemy.js
+                radius = 9 + Math.random() * 4;
+                speedMultiplier = 0.8; // 20% slower than player (HOMING = must be slow)
                 health = 1;
                 damage = 1;
                 color = '#ff9900'; // Orange
                 break;
             case 'stalker':
-                radius = 11 + Math.random() * 5; // Same as enemy.js
-                speedMultiplier = 1.1; // Same as enemy.js
+                radius = 11 + Math.random() * 5;
+                speedMultiplier = 0.75; // 25% slower than player (HOMING = must be slow)
                 health = 1;
                 damage = 1;
                 color = '#ff00ff'; // Purple
                 break;
             default:
                 radius = 10;
-                speedMultiplier = 1.0;
+                speedMultiplier = 0.9;
                 health = 1;
                 damage = 1;
                 color = '#ff0000';
@@ -954,9 +955,9 @@ class SimpleLobbyServer {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            // Normalize and apply chasing (match enemy.js: 0.05 + level * 0.005)
-            const baseChaseStrength = 0.05;
-            const levelBonus = this.gameState.level * 0.005;
+            // Normalize and apply chasing (SLOW - homing enemies must be slow)
+            const baseChaseStrength = 0.02; // Reduced from 0.05
+            const levelBonus = this.gameState.level * 0.002; // Reduced from 0.005
             const chaseStrength = baseChaseStrength + levelBonus;
             enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
             enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
@@ -991,14 +992,14 @@ class SimpleLobbyServer {
                 enemy.velocityX = 0;
                 enemy.velocityY = 0;
             } else {
-                // Chase player with homing (match enemy.js: 0.04 + level * 0.004)
+                // Chase player with homing (SLOW - stalkers must be slow)
                 const dx = player.x - enemy.x;
                 const dy = player.y - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (distance > 0) {
-                    const baseHoming = 0.04;
-                    const levelBonus = this.gameState.level * 0.004;
+                    const baseHoming = 0.015; // Reduced from 0.04
+                    const levelBonus = this.gameState.level * 0.0015; // Reduced from 0.004
                     const homingStrength = baseHoming + levelBonus;
                     enemy.velocityX = (dx / distance) * homingStrength;
                     enemy.velocityY = (dy / distance) * homingStrength;
@@ -1028,7 +1029,7 @@ class SimpleLobbyServer {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0 && !enemy.splitterExploding) {
-            const homingStrength = 0.008; // Very weak homing
+            const homingStrength = 0.004; // Extremely weak homing
             enemy.velocityX += (dx / distance) * homingStrength * deltaTime;
             enemy.velocityY += (dy / distance) * homingStrength * deltaTime;
             
