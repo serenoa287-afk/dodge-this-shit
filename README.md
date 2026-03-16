@@ -111,7 +111,7 @@ dodge-this-shit-game/
 - [ ] Power-ups (temporary invincibility, slow time, etc.)
 - [ ] Different enemy types with unique behaviors
 - [ ] Boss levels
-- [ ] Multiplayer mode
+- [x] **Multiplayer mode** ✓ **COMPLETE!**
 - [ ] Mobile touch controls
 - [ ] Level editor
 - [ ] Achievements system
