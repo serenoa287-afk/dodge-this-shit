@@ -17,6 +17,7 @@ class SimpleLobbyServer {
         this.gameLoop = null;
         this.betweenRounds = false;
         this.roundEndTimer = null;
+        this.gameOverTriggered = false;
         
         // Game constants
         this.ROUND_DURATION = 10000; // 10 seconds per round (easier)
@@ -832,9 +833,21 @@ class SimpleLobbyServer {
                             return p && p.lives <= 0;
                         });
                         
-                        if (allPlayersDead) {
-                            console.log('💀 All players dead! Game over.');
-                            this.endGame();
+                        if (allPlayersDead && !this.gameOverTriggered) {
+                            console.log('💀 All players dead! Showing game over screen...');
+                            this.gameOverTriggered = true;
+                            
+                            // Broadcast game over
+                            this.broadcastToLobby({
+                                type: 'gameOver',
+                                message: 'GAME OVER! All players died.'
+                            });
+                            
+                            // Wait 3 seconds then end game
+                            setTimeout(() => {
+                                this.endGame();
+                                this.gameOverTriggered = false;
+                            }, 3000);
                         }
                     }
                 }

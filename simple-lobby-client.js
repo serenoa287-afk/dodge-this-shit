@@ -405,6 +405,11 @@ class SimpleLobbyClient {
                 this.showRoundComplete(message.round, message.delay);
                 break;
                 
+            case 'gameOver':
+                this.gameActive = false;
+                this.showGameOver(message.message || 'GAME OVER!');
+                break;
+                
             case 'gameEnded':
                 this.gameActive = false;
                 this.hideLobbyMenu();
@@ -762,6 +767,40 @@ class SimpleLobbyClient {
                 roundDiv.parentNode.removeChild(roundDiv);
             }
         }, delay - 100); // Remove 100ms before next round starts
+    }
+    
+    showGameOver(message) {
+        const gameOverDiv = document.createElement('div');
+        gameOverDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: #ff0000;
+            padding: 40px 80px;
+            border-radius: 20px;
+            border: 5px solid #ff0000;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 32px;
+            text-align: center;
+            z-index: 1002;
+            pointer-events: none;
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.7);
+        `;
+        gameOverDiv.innerHTML = `
+            <div style="margin-bottom: 30px;">💀 ${message} 💀</div>
+            <div style="font-size: 18px; color: #ffffff;">Returning to menu in 3 seconds...</div>
+        `;
+        
+        document.body.appendChild(gameOverDiv);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (gameOverDiv.parentNode) {
+                gameOverDiv.parentNode.removeChild(gameOverDiv);
+            }
+        }, 3000);
     }
 }
 
