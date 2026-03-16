@@ -499,8 +499,140 @@ class SimpleLobbyServer {
         return 'single';
     }
     
-    spawnSingleEnemy() {
+    determineEnemyType(level) {
+        const types = ['basic', 'fast', 'tank', 'splitter', 'chaser', 'stalker'];
+        let weights = [0, 0, 0, 0, 0, 0]; // All start at 0
+        
+        // Progressive enemy unlocking based on level
+        if (level === 1) {
+            // Level 1: Only basic enemies
+            weights = [1.0, 0, 0, 0, 0, 0];
+        } else if (level === 2) {
+            // Level 2: Basic + occasional fast
+            weights = [0.8, 0.2, 0, 0, 0, 0];
+        } else if (level === 3) {
+            // Level 3: Basic, fast, occasional chaser
+            weights = [0.6, 0.3, 0, 0, 0.1, 0];
+        } else if (level === 4) {
+            // Level 4: More variety
+            weights = [0.5, 0.3, 0.1, 0, 0.1, 0];
+        } else if (level === 5) {
+            // Level 5: Introduce splitter
+            weights = [0.4, 0.3, 0.1, 0.1, 0.1, 0];
+        } else if (level === 6) {
+            // Level 6: More chasers
+            weights = [0.3, 0.3, 0.1, 0.1, 0.2, 0];
+        } else if (level === 7) {
+            // Level 7: Introduce stalker
+            weights = [0.2, 0.25, 0.15, 0.1, 0.2, 0.1];
+        } else if (level === 8) {
+            // Level 8: More stalkers
+            weights = [0.15, 0.2, 0.15, 0.1, 0.2, 0.2];
+        } else if (level === 9) {
+            // Level 9: Intense mix
+            weights = [0.1, 0.15, 0.15, 0.15, 0.25, 0.2];
+        } else if (level >= 10) {
+            // Level 10: Final boss level - all types
+            weights = [0.05, 0.1, 0.2, 0.2, 0.25, 0.2];
+        }
+        
+        const random = Math.random();
+        let cumulative = 0;
+        
+        for (let i = 0; i < types.length; i++) {
+            cumulative += weights[i];
+            if (random < cumulative) {
+                return types[i];
+            }
+        }
+        
+        return 'basic';
+    }
+    
+    getEnemyProperties(type, level) {
+        let radius, speedMultiplier, health, damage, color;
+        
+        switch(type) {
+            case 'basic':
+                radius = 10 + Math.random() * 5;
+                speedMultiplier = 1.0;
+                health = 1;
+                damage = 1;
+                color = '#ff0000'; // Red
+                break;
+            case 'fast':
+                radius = 8 + Math.random() * 4;
+                speedMultiplier = 1.5;
+                health = 1;
+                damage = 1;
+                color = '#ffff00'; // Yellow
+                break;
+            case 'tank':
+                radius = 15 + Math.random() * 10;
+                speedMultiplier = 0.7;
+                health = 2 + Math.floor(level / 3);
+                damage = 2;
+                color = '#0000ff'; // Blue
+                break;
+            case 'splitter':
+                radius = 12 + Math.random() * 6;
+                speedMultiplier = 1.2;
+                health = 1;
+                damage = 1;
+                color = '#00ff00'; // Green
+                break;
+            case 'chaser':
+                radius = 10 + Math.random() * 5;
+                speedMultiplier = 1.3;
+                health = 1;
+                damage = 1;
+                color = '#ff9900'; // Orange
+                break;
+            case 'stalker':
+                radius = 9 + Math.random() * 4;
+                speedMultiplier = 1.4;
+                health = 1;
+                damage = 1;
+                color = '#ff00ff'; // Purple
+                break;
+            default:
+                radius = 10;
+                speedMultiplier = 1.0;
+                health = 1;
+                damage = 1;
+                color = '#ff0000';
+        }
+        
+        return { radius, speedMultiplier, health, damage, color };
+    }
+    
+    createEnemy(x, y, velocityX, velocityY, level, forceType = null) {
         const enemyId = `enemy${this.gameState.enemyCount++}`;
+        
+        // Determine enemy type
+        const enemyType = forceType || this.determineEnemyType(level);
+        const props = this.getEnemyProperties(enemyType, level);
+        
+        // Adjust speed by multiplier
+        const baseSpeed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        const adjustedSpeed = baseSpeed * props.speedMultiplier;
+        const speedRatio = adjustedSpeed / baseSpeed;
+        
+        return {
+            id: enemyId,
+            x: x,
+            y: y,
+            velocityX: velocityX * speedRatio,
+            velocityY: velocityY * speedRatio,
+            radius: props.radius,
+            type: enemyType,
+            color: props.color,
+            health: props.health,
+            damage: props.damage
+        };
+    }
+    
+    spawnSingleEnemy() {
         const level = this.gameState.level;
         
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
@@ -536,21 +668,9 @@ class SimpleLobbyServer {
                 break;
         }
         
-        const enemy = {
-            id: enemyId,
-            x: x,
-            y: y,
-            velocityX: velocityX,
-            velocityY: velocityY,
-            radius: 10 + (level * 2),
-            type: 'basic',
-            color: '#ff0000',
-            health: 1,
-            damage: 1
-        };
-        
+        const enemy = this.createEnemy(x, y, velocityX, velocityY, level);
         this.gameState.enemies.push(enemy);
-        console.log(`  Spawned single enemy at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+        console.log(`  Spawned ${enemy.type} enemy at (${x.toFixed(0)}, ${y.toFixed(0)})`);
     }
     
     spawnRowPattern() {
@@ -566,7 +686,6 @@ class SimpleLobbyServer {
         console.log(`  Spawning row of ${count} enemies`);
         
         for (let i = 1; i <= count; i++) {
-            const enemyId = `enemy${this.gameState.enemyCount++}`;
             let x, y, velocityX, velocityY;
             
             if (side === 0) { // Top row
@@ -581,19 +700,7 @@ class SimpleLobbyServer {
                 velocityY = -speed;
             }
             
-            const enemy = {
-                id: enemyId,
-                x: x,
-                y: y,
-                velocityX: velocityX,
-                velocityY: velocityY,
-                radius: 10 + (level * 2),
-                type: 'basic',
-                color: '#ff0000',
-                health: 1,
-                damage: 1
-            };
-            
+            const enemy = this.createEnemy(x, y, velocityX, velocityY, level);
             this.gameState.enemies.push(enemy);
         }
     }
