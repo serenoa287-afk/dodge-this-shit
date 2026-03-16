@@ -54,11 +54,11 @@ class LevelManager {
     
     getLevelMultipliers() {
         return {
-            enemySpeed: 1 + (this.currentLevel - 1) * 0.1,
-            enemySpawnRate: 1 + (this.currentLevel - 1) * 0.15,
-            enemyHealth: 1 + Math.floor((this.currentLevel - 1) / 3) * 0.5,
-            enemySize: 1 + (this.currentLevel - 1) * 0.05,
-            scoreMultiplier: 1 + (this.currentLevel - 1) * 0.2
+            enemySpeed: 1 + (this.currentLevel - 1) * 0.05, // Reduced from 0.1
+            enemySpawnRate: 1 + (this.currentLevel - 1) * 0.08, // Reduced from 0.15
+            enemyHealth: 1 + Math.floor((this.currentLevel - 1) / 5) * 0.3, // Reduced from 0.5, slower scaling
+            enemySize: 1 + (this.currentLevel - 1) * 0.03, // Reduced from 0.05
+            scoreMultiplier: 1 + (this.currentLevel - 1) * 0.15 // Reduced from 0.2
         };
     }
     

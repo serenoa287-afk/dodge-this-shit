@@ -132,15 +132,15 @@ class Enemy {
                 break;
         }
         
-        // Scale with level
-        this.radius *= (1 + (this.level - 1) * 0.05);
-        this.speedMultiplier *= (1 + (this.level - 1) * 0.1);
+        // Scale with level (easier)
+        this.radius *= (1 + (this.level - 1) * 0.03); // Reduced from 0.05
+        this.speedMultiplier *= (1 + (this.level - 1) * 0.05); // Reduced from 0.1
         
-        // Chasers get faster and have larger explosions at higher levels
+        // Chasers get faster and have larger explosions at higher levels (easier)
         if (this.type === 'chaser') {
-            this.speedMultiplier *= (1 + (this.level - 1) * 0.15);
-            this.explosionRadius *= (1 + (this.level - 1) * 0.1);
-            this.explosionDamage = Math.min(3, 1 + Math.floor(this.level / 5));
+            this.speedMultiplier *= (1 + (this.level - 1) * 0.08); // Reduced from 0.15
+            this.explosionRadius *= (1 + (this.level - 1) * 0.05); // Reduced from 0.1
+            this.explosionDamage = Math.min(2, 1 + Math.floor(this.level / 7)); // Reduced damage
         }
     }
     

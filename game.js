@@ -28,7 +28,7 @@ class Game {
         this.enemySpawnTimer = 0;
         this.enemySpawnInterval = 1000; // ms - faster spawning for rows/columns
         this.roundTimer = 0;
-        this.roundDuration = 30000; // 30 seconds per round
+        this.roundDuration = 10000; // 10 seconds per round (easier)
         this.roundActive = false;
         
         // Input
@@ -248,13 +248,13 @@ class Game {
         // In multiplayer, enemies come from server
         if (!this.isMultiplayer) {
             this.enemySpawnTimer += this.deltaTime;
-            if (this.enemySpawnTimer >= this.enemySpawnInterval && this.roundActive) {
+            if (this.enemySpawnTimer >= this.enemySpawnInterval * 1.5 && this.roundActive) { // 50% slower spawn rate
                 this.spawnEnemyPattern();
                 this.enemySpawnTimer = 0;
                 
-                // Adjust spawn interval based on level and round progress
+                // Adjust spawn interval based on level and round progress (easier)
                 const roundProgress = this.roundTimer / this.roundDuration;
-                const baseInterval = Math.max(300, 1500 - (this.level * 80));
+                const baseInterval = Math.max(500, 2000 - (this.level * 60)); // Slower spawns
                 this.enemySpawnInterval = baseInterval * (1 - (roundProgress * 0.5)); // Faster as round progresses
             }
         }

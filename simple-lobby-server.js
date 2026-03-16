@@ -17,8 +17,8 @@ class SimpleLobbyServer {
         this.gameLoop = null;
         
         // Game constants
-        this.ROUND_DURATION = 30000;
-        this.ENEMY_SPAWN_INTERVAL = 1000;
+        this.ROUND_DURATION = 10000; // 10 seconds per round (easier)
+        this.ENEMY_SPAWN_INTERVAL = 1500; // Slower spawn rate (easier)
         
         this.setupWebSocket();
     }
