@@ -343,6 +343,28 @@ class SimpleLobbyClient {
                 this.updateGameState(message);
                 break;
                 
+            case 'roundEnded':
+                console.log(`🎉 Round ${message.round} complete! Next round in ${message.delay/1000}s`);
+                this.showMessage(`Round ${message.round} Complete!`);
+                break;
+                
+            case 'roundStarted':
+                console.log(`🎮 Round ${message.round} started`);
+                this.showMessage(`Round ${message.round} - Survive!`);
+                break;
+                
+            case 'playerRevived':
+                const revivedPlayer = this.lobbyPlayers.get(message.playerId);
+                if (revivedPlayer) {
+                    revivedPlayer.lives = message.lives;
+                    revivedPlayer.isDying = false;
+                    revivedPlayer.deathAnimationStart = null;
+                    if (message.playerId === this.playerId) {
+                        this.showMessage('Revived!');
+                    }
+                }
+                break;
+                
             case 'playerHit':
                 if (message.playerId === this.playerId) {
                     // Update local player lives
@@ -356,11 +378,16 @@ class SimpleLobbyClient {
                 break;
                 
             case 'playerDied':
-                if (message.playerId === this.playerId) {
-                    this.showMessage('You died!');
-                } else {
-                    const deadPlayer = this.lobbyPlayers.get(message.playerId);
-                    if (deadPlayer) {
+                const deadPlayer = this.lobbyPlayers.get(message.playerId);
+                if (deadPlayer) {
+                    // Start death animation
+                    deadPlayer.isDying = true;
+                    deadPlayer.deathAnimationProgress = 0;
+                    deadPlayer.deathAnimationDuration = 1000; // 1 second animation
+                    
+                    if (message.playerId === this.playerId) {
+                        this.showMessage('You died!');
+                    } else {
                         this.showMessage(`${deadPlayer.name} died!`);
                     }
                 }
@@ -529,7 +556,48 @@ class SimpleLobbyClient {
     drawOtherPlayers(ctx) {
         this.lobbyPlayers.forEach(player => {
             if (player.id !== this.playerId && player.x && player.y) {
-                // Draw other player
+                // Handle death animation
+                if (player.isDying) {
+                    if (!player.deathAnimationStart) {
+                        player.deathAnimationStart = Date.now();
+                    }
+                    
+                    const elapsed = Date.now() - player.deathAnimationStart;
+                    const progress = Math.min(1, elapsed / player.deathAnimationDuration);
+                    
+                    // Fade out and shrink
+                    const alpha = 1 - progress;
+                    const radius = 15 * (1 - progress);
+                    
+                    ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw explosion particles at the end
+                    if (progress >= 0.8) {
+                        ctx.fillStyle = '#ff9900';
+                        for (let i = 0; i < 8; i++) {
+                            const angle = (i / 8) * Math.PI * 2;
+                            const distance = 20 * (progress - 0.8) * 5;
+                            const px = player.x + Math.cos(angle) * distance;
+                            const py = player.y + Math.sin(angle) * distance;
+                            ctx.beginPath();
+                            ctx.arc(px, py, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    
+                    // End animation
+                    if (progress >= 1) {
+                        player.isDying = false;
+                        player.deathAnimationStart = null;
+                    }
+                    
+                    return; // Skip normal drawing during death animation
+                }
+                
+                // Normal player drawing (alive)
                 ctx.fillStyle = player.color;
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);

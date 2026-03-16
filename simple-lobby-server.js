@@ -15,11 +15,14 @@ class SimpleLobbyServer {
         this.gameActive = false;
         this.gameState = null;
         this.gameLoop = null;
+        this.betweenRounds = false;
+        this.roundEndTimer = null;
         
         // Game constants
         this.ROUND_DURATION = 10000; // 10 seconds per round (easier)
         this.ENEMY_SPAWN_INTERVAL = 500; // Much faster spawn rate
         this.ENEMIES_PER_SPAWN = 3; // Spawn multiple enemies at once
+        this.ROUND_END_DELAY = 4000; // 4 seconds between rounds
         
         this.setupWebSocket();
     }
@@ -349,19 +352,21 @@ class SimpleLobbyServer {
         const deltaTime = 16;
         const gameState = this.gameState;
         
-        // Update round timer
-        gameState.roundTimer -= deltaTime;
-        
-        // Check if round ended
-        if (gameState.roundTimer <= 0) {
-            this.endRound();
-            return;
-        }
-        
-        // Spawn enemies
-        if (now - gameState.lastSpawnTime > this.ENEMY_SPAWN_INTERVAL) {
-            this.spawnEnemy();
-            gameState.lastSpawnTime = now;
+        // Update round timer (only if not between rounds)
+        if (!this.betweenRounds) {
+            gameState.roundTimer -= deltaTime;
+            
+            // Check if round ended
+            if (gameState.roundTimer <= 0) {
+                this.endRound();
+                return;
+            }
+            
+            // Spawn enemies
+            if (now - gameState.lastSpawnTime > this.ENEMY_SPAWN_INTERVAL) {
+                this.spawnEnemy();
+                gameState.lastSpawnTime = now;
+            }
         }
         
         // Update enemies
@@ -817,8 +822,20 @@ class SimpleLobbyServer {
                     if (player.lives <= 0) {
                         this.broadcastToLobby({
                             type: 'playerDied',
-                            playerId: playerId
+                            playerId: playerId,
+                            withAnimation: true
                         });
+                        
+                        // Check if ALL players are dead
+                        const allPlayersDead = Array.from(this.lobbyPlayers).every(playerId => {
+                            const p = this.players.get(playerId);
+                            return p && p.lives <= 0;
+                        });
+                        
+                        if (allPlayersDead) {
+                            console.log('💀 All players dead! Game over.');
+                            this.endGame();
+                        }
                     }
                 }
             });
@@ -829,10 +846,39 @@ class SimpleLobbyServer {
         const currentRound = this.gameState.round;
         const nextRound = currentRound + 1;
         
+        // Set between rounds state
+        this.betweenRounds = true;
+        this.gameState.enemies = [];
+        
+        // Broadcast round end with 4-second delay
+        this.broadcastToLobby({
+            type: 'roundEnded',
+            round: currentRound,
+            nextRound: nextRound,
+            delay: this.ROUND_END_DELAY
+        });
+        
+        console.log(`🎉 Round ${currentRound} complete! Next round in ${this.ROUND_END_DELAY/1000} seconds...`);
+        
+        // Start next round after delay
+        if (this.roundEndTimer) clearTimeout(this.roundEndTimer);
+        this.roundEndTimer = setTimeout(() => {
+            this.startNextRound(nextRound);
+        }, this.ROUND_END_DELAY);
+        
+        // Check if game over
+        if (nextRound > 10) {
+            this.endGame();
+        }
+    }
+    
+    startNextRound(nextRound) {
+        this.betweenRounds = false;
+        
         this.gameState.round = nextRound;
         this.gameState.level = nextRound;
         this.gameState.roundTimer = this.ROUND_DURATION;
-        this.gameState.enemies = [];
+        this.gameState.lastSpawnTime = Date.now();
         
         // Revive dead players
         this.lobbyPlayers.forEach(playerId => {
@@ -841,21 +887,24 @@ class SimpleLobbyServer {
                 player.lives = 3;
                 player.x = 400;
                 player.y = 300;
+                
+                // Notify player revived
+                this.broadcastToLobby({
+                    type: 'playerRevived',
+                    playerId: playerId,
+                    lives: 3
+                });
             }
         });
         
-        // Broadcast round end
+        // Broadcast round start
         this.broadcastToLobby({
-            type: 'roundEnded',
-            round: currentRound,
-            nextRound: nextRound,
+            type: 'roundStarted',
+            round: nextRound,
             roundTimer: this.ROUND_DURATION
         });
         
-        // Check if game over
-        if (nextRound > 10) {
-            this.endGame();
-        }
+        console.log(`🎮 Starting round ${nextRound}`);
     }
     
     endGame() {
