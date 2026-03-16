@@ -576,21 +576,21 @@ class SimpleLobbyServer {
                 break;
             case 'splitter':
                 radius = 12 + Math.random() * 6;
-                speedMultiplier = 1.2;
+                speedMultiplier = 0.9; // Slightly slower than player
                 health = 1;
                 damage = 1;
                 color = '#00ff00'; // Green
                 break;
             case 'chaser':
                 radius = 10 + Math.random() * 5;
-                speedMultiplier = 1.1; // Reduced from 1.3
+                speedMultiplier = 0.8; // Slower than player (player speed = 0.3 * 0.8 = 0.24)
                 health = 1;
                 damage = 1;
                 color = '#ff9900'; // Orange
                 break;
             case 'stalker':
                 radius = 9 + Math.random() * 4;
-                speedMultiplier = 1.4;
+                speedMultiplier = 0.85; // Slower than player
                 health = 1;
                 damage = 1;
                 color = '#ff00ff'; // Purple
@@ -898,12 +898,14 @@ class SimpleLobbyServer {
             // Apply special behaviors based on enemy type
             this.updateEnemyBehavior(enemy, deltaTime);
             
-            // Basic movement
-            enemy.x += enemy.velocityX * deltaTime;
-            enemy.y += enemy.velocityY * deltaTime;
+            // Basic movement (unless exploding)
+            if (!enemy.splitterExploding) {
+                enemy.x += enemy.velocityX * deltaTime;
+                enemy.y += enemy.velocityY * deltaTime;
+            }
             
-            // Keep enemy on screen
-            return enemy.y < 650 && enemy.x > -50 && enemy.x < 850;
+            // Remove if marked for removal or out of bounds
+            return !enemy.shouldRemove && enemy.y < 650 && enemy.x > -50 && enemy.x < 850;
         });
     }
     
@@ -936,7 +938,10 @@ class SimpleLobbyServer {
             case 'stalker':
                 this.updateStalkerBehavior(enemy, nearestPlayer, deltaTime);
                 break;
-            // Fast, basic, tank, splitter just move straight
+            case 'splitter':
+                this.updateSplitterBehavior(enemy, nearestPlayer, deltaTime);
+                break;
+            // Fast, basic, tank just move straight
             // Fast enemies are slightly faster but no homing
         }
     }
@@ -1001,31 +1006,94 @@ class SimpleLobbyServer {
         }
     }
     
-    splitEnemy(enemy) {
-        // Split into 2-3 smaller enemies
-        const splitCount = 2 + Math.floor(Math.random() * 2); // 2 or 3
-        
-        for (let i = 0; i < splitCount; i++) {
-            const angle = (i * (2 * Math.PI / splitCount)) + (Math.random() * 0.5);
-            const speed = 0.2 + Math.random() * 0.1;
-            
-            const splitEnemy = {
-                id: `enemy${this.gameState.enemyCount++}`,
-                x: enemy.x,
-                y: enemy.y,
-                velocityX: Math.cos(angle) * speed,
-                velocityY: Math.sin(angle) * speed,
-                radius: enemy.radius * 0.6, // Smaller
-                type: 'basic', // Splits become basic enemies
-                color: '#00ff00', // Green
-                health: 1,
-                damage: 1
-            };
-            
-            this.gameState.enemies.push(splitEnemy);
+    updateSplitterBehavior(enemy, player, deltaTime) {
+        // Green splitters home in and explode after 2 seconds
+        if (!enemy.splitterTimer) {
+            enemy.splitterTimer = 0;
+            enemy.splitterExploding = false;
         }
         
-        console.log(`  Splitter split into ${splitCount} smaller enemies`);
+        enemy.splitterTimer += deltaTime;
+        
+        // Home in on player (weaker than chasers)
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0 && !enemy.splitterExploding) {
+            const homingStrength = 0.008; // Very weak homing
+            enemy.velocityX += (dx / distance) * homingStrength * deltaTime;
+            enemy.velocityY += (dy / distance) * homingStrength * deltaTime;
+            
+            // Limit speed
+            const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
+            const maxSpeed = 0.25; // Slow
+            if (speed > maxSpeed) {
+                enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
+                enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
+            }
+        }
+        
+        // Explode after 2 seconds
+        if (enemy.splitterTimer > 2000 && !enemy.splitterExploding) {
+            enemy.splitterExploding = true;
+            enemy.explosionTimer = 0;
+            enemy.explosionRadius = 0;
+            enemy.maxExplosionRadius = 50;
+            console.log(`💥 Green splitter exploding!`);
+        }
+        
+        // Handle explosion
+        if (enemy.splitterExploding) {
+            enemy.explosionTimer += deltaTime;
+            const explosionProgress = Math.min(1, enemy.explosionTimer / 500); // 0.5s explosion
+            enemy.explosionRadius = enemy.maxExplosionRadius * explosionProgress;
+            
+            // Check if explosion hits players
+            this.lobbyPlayers.forEach(playerId => {
+                const p = this.players.get(playerId);
+                if (p && p.lives > 0) {
+                    const dx = p.x - enemy.x;
+                    const dy = p.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < (15 + enemy.explosionRadius)) {
+                        // Player hit by explosion!
+                        p.lives -= 2; // Explosion does more damage
+                        
+                        // Notify player was hit
+                        this.broadcastToLobby({
+                            type: 'playerHit',
+                            playerId: playerId,
+                            damage: 2,
+                            remainingLives: p.lives
+                        });
+                        
+                        // Check if player died
+                        if (p.lives <= 0) {
+                            console.log(`💀 Player ${p.name} died from explosion!`);
+                            this.broadcastToLobby({
+                                type: 'playerDied',
+                                playerId: playerId,
+                                withAnimation: true
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // Remove enemy after explosion completes
+            if (enemy.explosionTimer >= 500) {
+                enemy.shouldRemove = true;
+            }
+        }
+    }
+    
+    splitEnemy(enemy) {
+        // OLD: Split into smaller enemies
+        // NEW: Green enemies now explode instead of split
+        // Keeping method for compatibility but it won't be called
+        console.log(`  Green enemy would split, but now explodes instead`);
     }
     
     checkCollisions() {
@@ -1042,10 +1110,8 @@ class SimpleLobbyServer {
                     // Player hit!
                     player.lives -= enemy.damage;
                     
-                    // Handle splitter splitting
-                    if (enemy.type === 'splitter') {
-                        this.splitEnemy(enemy);
-                    }
+                    // Green splitters explode on contact (handled in updateSplitterBehavior)
+                    // No splitting anymore
                     
                     // Remove enemy
                     this.gameState.enemies = this.gameState.enemies.filter(e => e.id !== enemy.id);
