@@ -337,6 +337,11 @@ class SimpleLobbyClient {
                 this.hideLobbyMenu();
                 this.startGame(message);
                 this.showMessage('Game started! Good luck!');
+                // Set initial round number (usually round 1)
+                if (this.game && message.round) {
+                    this.game.multiplayerRound = message.round;
+                    this.game.level = message.round;
+                }
                 break;
                 
             case 'gameStateUpdate':
@@ -351,6 +356,14 @@ class SimpleLobbyClient {
             case 'roundStarted':
                 console.log(`🎮 Round ${message.round} started`);
                 this.showMessage(`Round ${message.round} - Survive!`);
+                if (this.game && this.game.startMultiplayerRound) {
+                    this.game.startMultiplayerRound(message.round, message.roundTimer || 10000);
+                }
+                // Also update round number directly
+                if (this.game) {
+                    this.game.multiplayerRound = message.round;
+                    this.game.level = message.round;
+                }
                 break;
                 
             case 'playerRevived':
@@ -543,13 +556,20 @@ class SimpleLobbyClient {
             });
         }
         
-        // Update game round timer (for HUD display)
+        // Update game round timer and round number (for HUD display)
         if (this.game && message.roundTimer !== undefined) {
             // Convert server timer to local timer
             // Server timer counts DOWN from 10000 to 0
             // Game timer counts UP from 0 to 10000 (for HUD calculation)
             const timeElapsed = 10000 - message.roundTimer;
             this.game.roundTimer = timeElapsed;
+        }
+        
+        // Update game round number from server (single source of truth)
+        if (this.game && message.round !== undefined) {
+            this.game.multiplayerRound = message.round;
+            // Also update level for compatibility
+            this.game.level = message.round;
         }
         
         // Update other player positions
