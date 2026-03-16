@@ -775,9 +775,7 @@ class Game {
         this.enemies.forEach(enemy => enemy.draw(this.ctx));
         
         // Draw HUD
-        if (!this.isMultiplayer) {
-            this.drawHUD();
-        }
+        this.drawHUD();
     }
     
     drawOtherPlayer(player) {

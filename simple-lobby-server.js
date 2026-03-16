@@ -18,7 +18,8 @@ class SimpleLobbyServer {
         
         // Game constants
         this.ROUND_DURATION = 10000; // 10 seconds per round (easier)
-        this.ENEMY_SPAWN_INTERVAL = 800; // Faster spawn rate for testing
+        this.ENEMY_SPAWN_INTERVAL = 500; // Much faster spawn rate
+        this.ENEMIES_PER_SPAWN = 3; // Spawn multiple enemies at once
         
         this.setupWebSocket();
     }
@@ -374,58 +375,63 @@ class SimpleLobbyServer {
     }
     
     spawnEnemy() {
-        const enemyId = `enemy${this.gameState.enemyCount++}`;
         const level = this.gameState.level;
+        const baseSpeed = 0.3 + (level * 0.05);
         
-        // Spawn from different sides for variety
-        const side = Math.floor(Math.random() * 4);
-        let x, y, velocityX, velocityY;
-        
-        const baseSpeed = 0.3 + (level * 0.05); // Much faster base speed
-        const randomSpeed = baseSpeed * (0.8 + Math.random() * 0.4); // Some variation
-        
-        switch(side) {
-            case 0: // Top
-                x = Math.random() * 800;
-                y = -50;
-                velocityX = (Math.random() - 0.5) * 0.1;
-                velocityY = randomSpeed;
-                break;
-            case 1: // Right
-                x = 850;
-                y = Math.random() * 600;
-                velocityX = -randomSpeed;
-                velocityY = (Math.random() - 0.5) * 0.1;
-                break;
-            case 2: // Bottom
-                x = Math.random() * 800;
-                y = 650;
-                velocityX = (Math.random() - 0.5) * 0.1;
-                velocityY = -randomSpeed;
-                break;
-            case 3: // Left
-                x = -50;
-                y = Math.random() * 600;
-                velocityX = randomSpeed;
-                velocityY = (Math.random() - 0.5) * 0.1;
-                break;
+        // Spawn multiple enemies at once
+        for (let i = 0; i < this.ENEMIES_PER_SPAWN; i++) {
+            const enemyId = `enemy${this.gameState.enemyCount++}`;
+            
+            // Spawn from different sides for variety
+            const side = Math.floor(Math.random() * 4);
+            let x, y, velocityX, velocityY;
+            
+            const randomSpeed = baseSpeed * (0.8 + Math.random() * 0.4); // Some variation
+            
+            switch(side) {
+                case 0: // Top
+                    x = Math.random() * 800;
+                    y = -50 - (i * 20); // Stagger them
+                    velocityX = (Math.random() - 0.5) * 0.1;
+                    velocityY = randomSpeed;
+                    break;
+                case 1: // Right
+                    x = 850 + (i * 20);
+                    y = Math.random() * 600;
+                    velocityX = -randomSpeed;
+                    velocityY = (Math.random() - 0.5) * 0.1;
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * 800;
+                    y = 650 + (i * 20);
+                    velocityX = (Math.random() - 0.5) * 0.1;
+                    velocityY = -randomSpeed;
+                    break;
+                case 3: // Left
+                    x = -50 - (i * 20);
+                    y = Math.random() * 600;
+                    velocityX = randomSpeed;
+                    velocityY = (Math.random() - 0.5) * 0.1;
+                    break;
+            }
+            
+            const enemy = {
+                id: enemyId,
+                x: x,
+                y: y,
+                velocityX: velocityX,
+                velocityY: velocityY,
+                radius: 10 + (level * 2),
+                type: 'basic',
+                color: '#ff0000',
+                health: 1,
+                damage: 1
+            };
+            
+            this.gameState.enemies.push(enemy);
         }
         
-        const enemy = {
-            id: enemyId,
-            x: x,
-            y: y,
-            velocityX: velocityX,
-            velocityY: velocityY,
-            radius: 10 + (level * 2),
-            type: 'basic',
-            color: '#ff0000',
-            health: 1,
-            damage: 1
-        };
-        
-        this.gameState.enemies.push(enemy);
-        console.log(`Spawned enemy ${enemyId} at (${x.toFixed(0)}, ${y.toFixed(0)}) with speed ${randomSpeed.toFixed(2)}`);
+        console.log(`Spawned ${this.ENEMIES_PER_SPAWN} enemies at once`);
     }
     
     updateEnemies(deltaTime) {
