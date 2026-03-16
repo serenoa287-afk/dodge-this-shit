@@ -951,9 +951,8 @@ class SimpleLobbyServer {
             case 'stalker':
                 this.updateStalkerBehavior(enemy, nearestPlayer, deltaTime);
                 break;
-            case 'splitter':
-                this.updateSplitterBehavior(enemy, nearestPlayer, deltaTime);
-                break;
+            // Splitters just move straight (no homing, no explosion)
+            // case 'splitter': handled by default (no special behavior)
             // Fast, basic, tank just move straight
             // Fast enemies are slightly faster but no homing
         }
@@ -990,7 +989,11 @@ class SimpleLobbyServer {
             enemy.stalkTimer = 0;
             enemy.chaseDuration = 2000 + Math.random() * 1500; // 2-3.5s like enemy.js
             enemy.pauseDuration = 1000 + Math.random() * 1000; // 1-2s like enemy.js
+            enemy.exploded = false;
         }
+        
+        // If already exploded, skip
+        if (enemy.exploded) return;
         
         enemy.stalkTimer += deltaTime;
         
@@ -1017,10 +1020,58 @@ class SimpleLobbyServer {
                 }
             }
         } else if (enemy.stalkPhase === 'pause') {
-            // Pause for duration (match enemy.js)
+            // Pause for duration, then EXPLODE (match enemy.js)
             if (enemy.stalkTimer > enemy.pauseDuration) {
-                enemy.stalkPhase = 'chase';
+                enemy.stalkPhase = 'explode';
                 enemy.stalkTimer = 0;
+                enemy.explosionTimer = 0;
+                enemy.explosionRadius = 0;
+                enemy.maxExplosionRadius = 100 + (this.gameState.level * 8); // Match enemy.js
+                console.log(`💥 Stalker exploding! Radius: ${enemy.maxExplosionRadius}`);
+            }
+        } else if (enemy.stalkPhase === 'explode') {
+            // Handle explosion
+            enemy.explosionTimer += deltaTime;
+            const explosionProgress = Math.min(1, enemy.explosionTimer / 600); // 0.6s explosion (match enemy.js)
+            enemy.explosionRadius = enemy.maxExplosionRadius * explosionProgress;
+            
+            // Check if explosion hits players
+            this.lobbyPlayers.forEach(playerId => {
+                const p = this.players.get(playerId);
+                if (p && p.lives > 0) {
+                    const dx = p.x - enemy.x;
+                    const dy = p.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < (15 + enemy.explosionRadius)) {
+                        // Player hit by explosion!
+                        p.lives -= 2; // Explosion does 2 damage (match enemy.js)
+                        
+                        // Notify player was hit
+                        this.broadcastToLobby({
+                            type: 'playerHit',
+                            playerId: playerId,
+                            damage: 2,
+                            remainingLives: p.lives
+                        });
+                        
+                        // Check if player died
+                        if (p.lives <= 0) {
+                            console.log(`💀 Player ${p.name} died from stalker explosion!`);
+                            this.broadcastToLobby({
+                                type: 'playerDied',
+                                playerId: playerId,
+                                withAnimation: true
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // Remove enemy after explosion completes
+            if (enemy.explosionTimer >= 600) {
+                enemy.exploded = true;
+                enemy.shouldRemove = true;
             }
         }
     }
