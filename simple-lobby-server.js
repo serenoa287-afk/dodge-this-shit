@@ -562,7 +562,7 @@ class SimpleLobbyServer {
                 break;
             case 'fast':
                 radius = 8 + Math.random() * 4;
-                speedMultiplier = 1.5;
+                speedMultiplier = 1.2; // Reduced from 1.5
                 health = 1;
                 damage = 1;
                 color = '#ffff00'; // Yellow
@@ -1229,16 +1229,18 @@ class SimpleLobbyServer {
     broadcastGameState() {
         if (!this.gameActive || !this.gameState) return;
         
-        // Get current player positions
-        const playerStates = this.getLobbyPlayers().map(player => ({
-            id: player.id,
-            x: player.x,
-            y: player.y,
-            lives: player.lives,
-            score: player.score,
-            color: player.color,
-            name: player.name
-        }));
+        // Get current player positions (filter out dead players)
+        const playerStates = this.getLobbyPlayers()
+            .filter(player => player.lives > 0) // Only alive players
+            .map(player => ({
+                id: player.id,
+                x: player.x,
+                y: player.y,
+                lives: player.lives,
+                score: player.score,
+                color: player.color,
+                name: player.name
+            }));
         
         const message = {
             type: 'gameStateUpdate',

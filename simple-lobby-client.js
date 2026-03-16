@@ -590,6 +590,11 @@ class SimpleLobbyClient {
     drawOtherPlayers(ctx) {
         this.lobbyPlayers.forEach(player => {
             if (player.id !== this.playerId && player.x && player.y) {
+                // Don't draw dead players (lives <= 0) unless they're in death animation
+                if (player.lives <= 0 && !player.isDying) {
+                    return;
+                }
+                
                 // Handle death animation
                 if (player.isDying) {
                     if (!player.deathAnimationStart) {
@@ -626,12 +631,13 @@ class SimpleLobbyClient {
                     if (progress >= 1) {
                         player.isDying = false;
                         player.deathAnimationStart = null;
+                        // Player is now fully dead, won't be drawn anymore
                     }
                     
                     return; // Skip normal drawing during death animation
                 }
                 
-                // Normal player drawing (alive)
+                // Normal player drawing (alive and with lives > 0)
                 ctx.fillStyle = player.color;
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
