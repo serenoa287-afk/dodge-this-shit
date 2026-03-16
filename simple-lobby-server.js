@@ -562,7 +562,7 @@ class SimpleLobbyServer {
                 break;
             case 'fast':
                 radius = 8 + Math.random() * 4;
-                speedMultiplier = 1.2; // Reduced from 1.5
+                speedMultiplier = 1.05; // Only slightly faster than basic
                 health = 1;
                 damage = 1;
                 color = '#ffff00'; // Yellow
@@ -933,13 +933,11 @@ class SimpleLobbyServer {
             case 'chaser':
                 this.updateChaserBehavior(enemy, nearestPlayer, deltaTime);
                 break;
-            case 'fast':
-                this.updateFastBehavior(enemy, nearestPlayer, deltaTime);
-                break;
             case 'stalker':
                 this.updateStalkerBehavior(enemy, nearestPlayer, deltaTime);
                 break;
-            // Basic, tank, splitter just move straight
+            // Fast, basic, tank, splitter just move straight
+            // Fast enemies are slightly faster but no homing
         }
     }
     
@@ -962,19 +960,6 @@ class SimpleLobbyServer {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
             }
-        }
-    }
-    
-    updateFastBehavior(enemy, player, deltaTime) {
-        // Fast enemies have slight homing
-        const dx = player.x - enemy.x;
-        const dy = player.y - enemy.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0 && distance < 300) { // Only home if player is close
-            const homingStrength = 0.02;
-            enemy.velocityX += (dx / distance) * homingStrength * deltaTime;
-            enemy.velocityY += (dy / distance) * homingStrength * deltaTime;
         }
     }
     
