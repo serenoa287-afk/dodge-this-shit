@@ -895,10 +895,152 @@ class SimpleLobbyServer {
     
     updateEnemies(deltaTime) {
         this.gameState.enemies = this.gameState.enemies.filter(enemy => {
+            // Apply special behaviors based on enemy type
+            this.updateEnemyBehavior(enemy, deltaTime);
+            
+            // Basic movement
             enemy.x += enemy.velocityX * deltaTime;
             enemy.y += enemy.velocityY * deltaTime;
+            
+            // Keep enemy on screen
             return enemy.y < 650 && enemy.x > -50 && enemy.x < 850;
         });
+    }
+    
+    updateEnemyBehavior(enemy, deltaTime) {
+        // Find nearest player for chasing behaviors
+        let nearestPlayer = null;
+        let minDistance = Infinity;
+        
+        this.lobbyPlayers.forEach(playerId => {
+            const player = this.players.get(playerId);
+            if (player && player.lives > 0) {
+                const dx = player.x - enemy.x;
+                const dy = player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestPlayer = player;
+                }
+            }
+        });
+        
+        if (!nearestPlayer) return;
+        
+        // Apply behaviors based on enemy type
+        switch(enemy.type) {
+            case 'chaser':
+                this.updateChaserBehavior(enemy, nearestPlayer, deltaTime);
+                break;
+            case 'fast':
+                this.updateFastBehavior(enemy, nearestPlayer, deltaTime);
+                break;
+            case 'stalker':
+                this.updateStalkerBehavior(enemy, nearestPlayer, deltaTime);
+                break;
+            // Basic, tank, splitter just move straight
+        }
+    }
+    
+    updateChaserBehavior(enemy, player, deltaTime) {
+        // Simple chasing: move toward player
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0) {
+            // Normalize and apply chasing
+            const chaseStrength = 0.05; // How strongly it chases
+            enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
+            enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
+            
+            // Limit speed
+            const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
+            const maxSpeed = 0.5;
+            if (speed > maxSpeed) {
+                enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
+                enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
+            }
+        }
+    }
+    
+    updateFastBehavior(enemy, player, deltaTime) {
+        // Fast enemies have slight homing
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0 && distance < 300) { // Only home if player is close
+            const homingStrength = 0.02;
+            enemy.velocityX += (dx / distance) * homingStrength * deltaTime;
+            enemy.velocityY += (dy / distance) * homingStrength * deltaTime;
+        }
+    }
+    
+    updateStalkerBehavior(enemy, player, deltaTime) {
+        // Initialize stalker state if needed
+        if (!enemy.stalkPhase) {
+            enemy.stalkPhase = 'chase';
+            enemy.stalkTimer = 0;
+        }
+        
+        enemy.stalkTimer += deltaTime;
+        
+        if (enemy.stalkPhase === 'chase') {
+            // Chase for 2 seconds
+            if (enemy.stalkTimer > 2000) {
+                enemy.stalkPhase = 'pause';
+                enemy.stalkTimer = 0;
+                // Stop moving during pause
+                enemy.velocityX = 0;
+                enemy.velocityY = 0;
+            } else {
+                // Chase player
+                const dx = player.x - enemy.x;
+                const dy = player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    const chaseStrength = 0.04;
+                    enemy.velocityX = (dx / distance) * chaseStrength;
+                    enemy.velocityY = (dy / distance) * chaseStrength;
+                }
+            }
+        } else if (enemy.stalkPhase === 'pause') {
+            // Pause for 1 second
+            if (enemy.stalkTimer > 1000) {
+                enemy.stalkPhase = 'chase';
+                enemy.stalkTimer = 0;
+            }
+        }
+    }
+    
+    splitEnemy(enemy) {
+        // Split into 2-3 smaller enemies
+        const splitCount = 2 + Math.floor(Math.random() * 2); // 2 or 3
+        
+        for (let i = 0; i < splitCount; i++) {
+            const angle = (i * (2 * Math.PI / splitCount)) + (Math.random() * 0.5);
+            const speed = 0.2 + Math.random() * 0.1;
+            
+            const splitEnemy = {
+                id: `enemy${this.gameState.enemyCount++}`,
+                x: enemy.x,
+                y: enemy.y,
+                velocityX: Math.cos(angle) * speed,
+                velocityY: Math.sin(angle) * speed,
+                radius: enemy.radius * 0.6, // Smaller
+                type: 'basic', // Splits become basic enemies
+                color: '#00ff00', // Green
+                health: 1,
+                damage: 1
+            };
+            
+            this.gameState.enemies.push(splitEnemy);
+        }
+        
+        console.log(`  Splitter split into ${splitCount} smaller enemies`);
     }
     
     checkCollisions() {
@@ -914,6 +1056,11 @@ class SimpleLobbyServer {
                 if (distance < (15 + enemy.radius)) {
                     // Player hit!
                     player.lives -= enemy.damage;
+                    
+                    // Handle splitter splitting
+                    if (enemy.type === 'splitter') {
+                        this.splitEnemy(enemy);
+                    }
                     
                     // Remove enemy
                     this.gameState.enemies = this.gameState.enemies.filter(e => e.id !== enemy.id);
