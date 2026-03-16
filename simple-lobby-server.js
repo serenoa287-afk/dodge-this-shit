@@ -583,7 +583,7 @@ class SimpleLobbyServer {
                 break;
             case 'chaser':
                 radius = 10 + Math.random() * 5;
-                speedMultiplier = 0.8; // Slower than player (player speed = 0.3 * 0.8 = 0.24)
+                speedMultiplier = 0.7; // Even slower than player
                 health = 1;
                 damage = 1;
                 color = '#ff9900'; // Orange
@@ -953,14 +953,14 @@ class SimpleLobbyServer {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            // Normalize and apply chasing (VERY WEAK)
-            const chaseStrength = 0.01; // Reduced from 0.05 (5x slower)
+            // Normalize and apply chasing (EXTREMELY WEAK)
+            const chaseStrength = 0.005; // Reduced from 0.01 (2x slower)
             enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
             enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
             
-            // Limit speed (SLOWER)
+            // Limit speed (VERY SLOW)
             const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
-            const maxSpeed = 0.3; // Reduced from 0.5
+            const maxSpeed = 0.25; // Reduced from 0.3
             if (speed > maxSpeed) {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
@@ -1199,6 +1199,7 @@ class SimpleLobbyServer {
     startNextRound(nextRound) {
         this.betweenRounds = false;
         
+        console.log(`🔄 Starting round ${nextRound} (was ${this.gameState.round})`);
         this.gameState.round = nextRound;
         this.gameState.level = nextRound;
         this.gameState.roundTimer = this.ROUND_DURATION;

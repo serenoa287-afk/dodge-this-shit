@@ -745,20 +745,20 @@ class SimpleLobbyClient {
         const roundDiv = document.createElement('div');
         roundDiv.style.cssText = `
             position: fixed;
-            top: 50%;
+            top: 30px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
             color: #00ffea;
-            padding: 20px 40px;
-            border-radius: 10px;
-            border: 3px solid #00ffea;
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #00ffea;
             font-family: 'Press Start 2P', cursive;
-            font-size: 18px;
+            font-size: 16px;
             text-align: center;
             z-index: 1001;
             pointer-events: none;
-            box-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
+            box-shadow: 0 0 15px rgba(0, 255, 234, 0.4);
         `;
         
         // Create countdown element
@@ -766,8 +766,8 @@ class SimpleLobbyClient {
         countdownElement.style.cssText = 'font-size: 14px; color: #ffffff; margin-top: 10px;';
         
         roundDiv.innerHTML = `
-            <div style="margin-bottom: 10px;">🎉 ROUND ${roundNumber} COMPLETE! 🎉</div>
-            <div style="font-size: 14px; color: #ffffff;">Next round starting in <span id="round-countdown">${delay/1000}</span> seconds...</div>
+            <div>🎉 ROUND ${roundNumber} COMPLETE!</div>
+            <div style="font-size: 12px; color: #ffffff; margin-top: 5px;">Next round in <span id="round-countdown">${delay/1000}</span>s</div>
         `;
         
         document.body.appendChild(roundDiv);
