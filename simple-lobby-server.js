@@ -375,43 +375,307 @@ class SimpleLobbyServer {
     }
     
     spawnEnemy() {
-        const level = this.gameState.level;
-        const baseSpeed = 0.3 + (level * 0.05);
+        // Use pattern-based spawning like single player
+        const roundProgress = this.gameState.roundTimer / this.ROUND_DURATION;
+        const patternType = this.getPatternType(roundProgress);
         
-        // Spawn multiple enemies at once
-        for (let i = 0; i < this.ENEMIES_PER_SPAWN; i++) {
-            const enemyId = `enemy${this.gameState.enemyCount++}`;
+        console.log(`🎯 Spawning pattern: ${patternType} (level ${this.gameState.level}, progress ${roundProgress.toFixed(2)})`);
+        
+        switch(patternType) {
+            case 'single':
+                this.spawnSingleEnemy();
+                break;
+            case 'row':
+                this.spawnRowPattern();
+                break;
+            case 'column':
+                this.spawnColumnPattern();
+                break;
+            case 'staggered':
+                this.spawnStaggeredPattern();
+                break;
+            case 'wave':
+                this.spawnWavePattern();
+                break;
+            case 'chaserWave':
+                this.spawnChaserWave();
+                break;
+        }
+    }
+    
+    getPatternType(roundProgress) {
+        const level = this.gameState.level;
+        // Progressive pattern unlocking based on level
+        let patterns = [];
+        
+        if (level === 1) {
+            // Level 1: Only single enemies
+            patterns = [{ type: 'single', weight: 1.0 }];
+        } else if (level === 2) {
+            // Level 2: Mostly single, occasional rows
+            patterns = [
+                { type: 'single', weight: 0.8 },
+                { type: 'row', weight: 0.2 }
+            ];
+        } else if (level === 3) {
+            // Level 3: Add columns
+            patterns = [
+                { type: 'single', weight: 0.6 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 }
+            ];
+        } else if (level === 4) {
+            // Level 4: Add staggered
+            patterns = [
+                { type: 'single', weight: 0.5 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.1 }
+            ];
+        } else if (level === 5) {
+            // Level 5: Add waves
+            patterns = [
+                { type: 'single', weight: 0.4 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.1 },
+                { type: 'wave', weight: 0.1 }
+            ];
+        } else if (level === 6) {
+            // Level 6: Add chaser waves
+            patterns = [
+                { type: 'single', weight: 0.3 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.15 },
+                { type: 'wave', weight: 0.1 },
+                { type: 'chaserWave', weight: 0.05 }
+            ];
+        } else if (level >= 7) {
+            // Levels 7-10: Full patterns with progression
+            patterns = [
+                { type: 'single', weight: 0.25 },
+                { type: 'row', weight: 0.2 },
+                { type: 'column', weight: 0.2 },
+                { type: 'staggered', weight: 0.15 },
+                { type: 'wave', weight: 0.1 },
+                { type: 'chaserWave', weight: 0.1 }
+            ];
             
-            // Spawn from different sides for variety
-            const side = Math.floor(Math.random() * 4);
+            // Adjust based on round progress
+            if (roundProgress > 0.5) {
+                patterns[0].weight = 0.15;  // Less single
+                patterns[3].weight = 0.2;   // More staggered
+                patterns[4].weight = 0.15;  // More waves
+                patterns[5].weight = 0.15;  // More chaser waves
+            }
+            
+            if (roundProgress > 0.8) {
+                patterns[0].weight = 0.1;
+                patterns[1].weight = 0.25;
+                patterns[2].weight = 0.25;
+                patterns[3].weight = 0.15;
+                patterns[4].weight = 0.15;
+                patterns[5].weight = 0.1;
+            }
+        }
+        
+        const random = Math.random();
+        let cumulative = 0;
+        
+        for (const pattern of patterns) {
+            cumulative += pattern.weight;
+            if (random < cumulative) {
+                return pattern.type;
+            }
+        }
+        
+        return 'single';
+    }
+    
+    spawnSingleEnemy() {
+        const enemyId = `enemy${this.gameState.enemyCount++}`;
+        const level = this.gameState.level;
+        
+        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        let x, y, velocityX, velocityY;
+        
+        const baseSpeed = 0.3 + (level * 0.05);
+        const speed = Math.min(0.5, baseSpeed);
+        
+        switch(side) {
+            case 0: // Top
+                x = Math.random() * 800;
+                y = -50;
+                velocityX = (Math.random() - 0.5) * 0.1;
+                velocityY = speed;
+                break;
+            case 1: // Right
+                x = 850;
+                y = Math.random() * 600;
+                velocityX = -speed;
+                velocityY = (Math.random() - 0.5) * 0.1;
+                break;
+            case 2: // Bottom
+                x = Math.random() * 800;
+                y = 650;
+                velocityX = (Math.random() - 0.5) * 0.1;
+                velocityY = -speed;
+                break;
+            case 3: // Left
+                x = -50;
+                y = Math.random() * 600;
+                velocityX = speed;
+                velocityY = (Math.random() - 0.5) * 0.1;
+                break;
+        }
+        
+        const enemy = {
+            id: enemyId,
+            x: x,
+            y: y,
+            velocityX: velocityX,
+            velocityY: velocityY,
+            radius: 10 + (level * 2),
+            type: 'basic',
+            color: '#ff0000',
+            health: 1,
+            damage: 1
+        };
+        
+        this.gameState.enemies.push(enemy);
+        console.log(`  Spawned single enemy at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+    }
+    
+    spawnRowPattern() {
+        const level = this.gameState.level;
+        const side = Math.floor(Math.random() * 2); // 0: top, 1: bottom
+        const baseSpeed = 0.3 + (level * 0.05);
+        const speed = Math.min(0.45, baseSpeed);
+        
+        // Number of enemies in row: 3-7, increases with level
+        const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(level / 3));
+        const spacing = 800 / (count + 1);
+        
+        console.log(`  Spawning row of ${count} enemies`);
+        
+        for (let i = 1; i <= count; i++) {
+            const enemyId = `enemy${this.gameState.enemyCount++}`;
             let x, y, velocityX, velocityY;
             
-            const randomSpeed = baseSpeed * (0.8 + Math.random() * 0.4); // Some variation
+            if (side === 0) { // Top row
+                x = i * spacing;
+                y = -50 - (i * 10); // Stagger them slightly
+                velocityX = 0;
+                velocityY = speed;
+            } else { // Bottom row
+                x = i * spacing;
+                y = 650 + (i * 10);
+                velocityX = 0;
+                velocityY = -speed;
+            }
+            
+            const enemy = {
+                id: enemyId,
+                x: x,
+                y: y,
+                velocityX: velocityX,
+                velocityY: velocityY,
+                radius: 10 + (level * 2),
+                type: 'basic',
+                color: '#ff0000',
+                health: 1,
+                damage: 1
+            };
+            
+            this.gameState.enemies.push(enemy);
+        }
+    }
+    
+    spawnColumnPattern() {
+        const level = this.gameState.level;
+        const side = Math.floor(Math.random() * 2); // 0: left, 1: right
+        const baseSpeed = 0.3 + (level * 0.05);
+        const speed = Math.min(0.45, baseSpeed);
+        
+        // Number of enemies in column: 3-7, increases with level
+        const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(level / 3));
+        const spacing = 600 / (count + 1);
+        
+        console.log(`  Spawning column of ${count} enemies`);
+        
+        for (let i = 1; i <= count; i++) {
+            const enemyId = `enemy${this.gameState.enemyCount++}`;
+            let x, y, velocityX, velocityY;
+            
+            if (side === 0) { // Left column
+                x = -50 - (i * 10); // Stagger them slightly
+                y = i * spacing;
+                velocityX = speed;
+                velocityY = 0;
+            } else { // Right column
+                x = 850 + (i * 10);
+                y = i * spacing;
+                velocityX = -speed;
+                velocityY = 0;
+            }
+            
+            const enemy = {
+                id: enemyId,
+                x: x,
+                y: y,
+                velocityX: velocityX,
+                velocityY: velocityY,
+                radius: 10 + (level * 2),
+                type: 'basic',
+                color: '#ff0000',
+                health: 1,
+                damage: 1
+            };
+            
+            this.gameState.enemies.push(enemy);
+        }
+    }
+    
+    spawnStaggeredPattern() {
+        const level = this.gameState.level;
+        const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        const baseSpeed = 0.3 + (level * 0.05);
+        const speed = Math.min(0.4, baseSpeed);
+        
+        // Number of enemies: 5-10, increases with level
+        const count = 5 + Math.floor(Math.random() * 4) + Math.min(3, Math.floor(level / 2));
+        
+        console.log(`  Spawning staggered pattern of ${count} enemies`);
+        
+        for (let i = 0; i < count; i++) {
+            const enemyId = `enemy${this.gameState.enemyCount++}`;
+            let x, y, velocityX, velocityY;
             
             switch(side) {
-                case 0: // Top
+                case 0: // Top - staggered horizontally
                     x = Math.random() * 800;
-                    y = -50 - (i * 20); // Stagger them
-                    velocityX = (Math.random() - 0.5) * 0.1;
-                    velocityY = randomSpeed;
+                    y = -50 - (i * 30);
+                    velocityX = 0;
+                    velocityY = speed;
                     break;
-                case 1: // Right
-                    x = 850 + (i * 20);
+                case 1: // Right - staggered vertically
+                    x = 850 + (i * 30);
                     y = Math.random() * 600;
-                    velocityX = -randomSpeed;
-                    velocityY = (Math.random() - 0.5) * 0.1;
+                    velocityX = -speed;
+                    velocityY = 0;
                     break;
-                case 2: // Bottom
+                case 2: // Bottom - staggered horizontally
                     x = Math.random() * 800;
-                    y = 650 + (i * 20);
-                    velocityX = (Math.random() - 0.5) * 0.1;
-                    velocityY = -randomSpeed;
+                    y = 650 + (i * 30);
+                    velocityX = 0;
+                    velocityY = -speed;
                     break;
-                case 3: // Left
-                    x = -50 - (i * 20);
+                case 3: // Left - staggered vertically
+                    x = -50 - (i * 30);
                     y = Math.random() * 600;
-                    velocityX = randomSpeed;
-                    velocityY = (Math.random() - 0.5) * 0.1;
+                    velocityX = speed;
+                    velocityY = 0;
                     break;
             }
             
@@ -430,8 +694,90 @@ class SimpleLobbyServer {
             
             this.gameState.enemies.push(enemy);
         }
+    }
+    
+    spawnWavePattern() {
+        const level = this.gameState.level;
+        console.log(`  Spawning wave pattern (level ${level})`);
         
-        console.log(`Spawned ${this.ENEMIES_PER_SPAWN} enemies at once`);
+        // Spawn multiple patterns at once for intense waves
+        const patterns = ['row', 'column', 'staggered'];
+        const patternCount = 1 + Math.floor(Math.random() * 2) + Math.min(1, Math.floor(level / 5));
+        
+        for (let i = 0; i < patternCount; i++) {
+            const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+            
+            switch(pattern) {
+                case 'row':
+                    this.spawnRowPattern();
+                    break;
+                case 'column':
+                    this.spawnColumnPattern();
+                    break;
+                case 'staggered':
+                    this.spawnStaggeredPattern();
+                    break;
+            }
+        }
+    }
+    
+    spawnChaserWave() {
+        const level = this.gameState.level;
+        const baseSpeed = 0.3 + (level * 0.05);
+        const speed = Math.min(0.4, baseSpeed);
+        
+        // Spawn 3-5 chasers from different corners
+        const count = 3 + Math.floor(Math.random() * 3);
+        
+        console.log(`  Spawning chaser wave of ${count} enemies`);
+        
+        for (let i = 0; i < count; i++) {
+            const enemyId = `enemy${this.gameState.enemyCount++}`;
+            let x, y, velocityX, velocityY;
+            
+            // Each chaser from a different corner
+            switch(i % 4) {
+                case 0: // Top-left
+                    x = -50 - (i * 20);
+                    y = -50 - (i * 20);
+                    velocityX = speed * 0.6;
+                    velocityY = speed * 0.6;
+                    break;
+                case 1: // Top-right
+                    x = 850 + (i * 20);
+                    y = -50 - (i * 20);
+                    velocityX = -speed * 0.6;
+                    velocityY = speed * 0.6;
+                    break;
+                case 2: // Bottom-left
+                    x = -50 - (i * 20);
+                    y = 650 + (i * 20);
+                    velocityX = speed * 0.6;
+                    velocityY = -speed * 0.6;
+                    break;
+                case 3: // Bottom-right
+                    x = 850 + (i * 20);
+                    y = 650 + (i * 20);
+                    velocityX = -speed * 0.6;
+                    velocityY = -speed * 0.6;
+                    break;
+            }
+            
+            const enemy = {
+                id: enemyId,
+                x: x,
+                y: y,
+                velocityX: velocityX,
+                velocityY: velocityY,
+                radius: 10 + (level * 2),
+                type: 'chaser',
+                color: '#ff9900',
+                health: 1,
+                damage: 1
+            };
+            
+            this.gameState.enemies.push(enemy);
+        }
     }
     
     updateEnemies(deltaTime) {
