@@ -37,7 +37,6 @@ class Game {
         
         // UI elements
         this.pauseBtn = document.getElementById('pause-btn');
-        this.resetBtn = document.getElementById('reset-btn');
         this.restartBtn = document.getElementById('restart-btn');
         this.singlePlayerBtn = document.getElementById('single-player-btn');
         this.multiplayerLobbyBtn = document.getElementById('multiplayer-lobby-btn');
@@ -116,7 +115,6 @@ class Game {
         
         // Button events
         this.pauseBtn.addEventListener('click', () => this.togglePause());
-        this.resetBtn.addEventListener('click', () => this.resetGame());
         this.restartBtn.addEventListener('click', () => this.restartGame());
         this.singlePlayerBtn.addEventListener('click', () => {
             this.isMultiplayer = false;
@@ -191,13 +189,6 @@ class Game {
             this.gameState = 'playing';
             this.pauseBtn.textContent = 'Pause (P)';
         }
-    }
-    
-    resetGame() {
-        this.gameState = 'start';
-        this.startScreen.style.display = 'flex';
-        this.gameOverScreen.style.display = 'none';
-        this.resetGameState();
     }
     
     restartGame() {
