@@ -823,14 +823,20 @@ class Game {
     }
     
     drawPlayerDeathAnimation() {
-        if (!this.playerDeathTime) return;
+        if (!this.playerDeathTime) {
+            console.log('⚠️ No playerDeathTime set, cannot draw death animation');
+            return;
+        }
         
         const elapsed = Date.now() - this.playerDeathTime;
         const duration = 1000; // 1 second animation
         const progress = Math.min(1, elapsed / duration);
         
+        console.log(`🎬 Death animation: elapsed=${elapsed}ms, progress=${progress.toFixed(2)}`);
+        
         // Don't draw anything after animation completes
         if (progress >= 1) {
+            console.log('✅ Death animation complete, player hidden');
             return; // Animation complete, player stays completely hidden
         }
         
@@ -891,7 +897,9 @@ class Game {
         this.ctx.font = '16px "Press Start 2P"';
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`SCORE: ${this.score}`, 20, 30);
-        this.ctx.fillText(`ROUND: ${this.level}`, 20, 60);
+        // Show multiplayer round in multiplayer, level in single player
+        const roundDisplay = this.isMultiplayer ? this.multiplayerRound : this.level;
+        this.ctx.fillText(`ROUND: ${roundDisplay}`, 20, 60);
         this.ctx.fillText(`LIVES: ${this.lives}`, 20, 90);
         
         // Round timer
