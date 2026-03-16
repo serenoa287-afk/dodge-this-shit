@@ -789,7 +789,15 @@ class Game {
         
         // Draw server enemies in synchronized multiplayer
         if (this.isMultiplayer && this.multiplayer && this.multiplayer.gameActive && this.multiplayer.drawServerEnemies) {
+            console.log('🎮 Game calling drawServerEnemies');
             this.multiplayer.drawServerEnemies(this.ctx);
+        } else {
+            console.log('🎮 Game NOT calling drawServerEnemies:', {
+                isMultiplayer: this.isMultiplayer,
+                hasMultiplayer: !!this.multiplayer,
+                gameActive: this.multiplayer?.gameActive,
+                hasDrawMethod: !!this.multiplayer?.drawServerEnemies
+            });
         }
         
         // Draw enemies

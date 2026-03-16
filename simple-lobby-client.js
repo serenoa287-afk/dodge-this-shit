@@ -480,11 +480,14 @@ class SimpleLobbyClient {
     }
     
     updateGameState(message) {
+        console.log(`📊 Game state update: ${message.enemies?.length || 0} enemies, ${message.players?.length || 0} players`);
+        
         // Update server enemies
         this.serverEnemies.clear();
         if (message.enemies) {
             message.enemies.forEach(enemy => {
                 this.serverEnemies.set(enemy.id, enemy);
+                console.log(`  Enemy ${enemy.id}: (${enemy.x.toFixed(0)}, ${enemy.y.toFixed(0)}) radius=${enemy.radius}`);
             });
         }
         
@@ -559,25 +562,31 @@ class SimpleLobbyClient {
     }
     
     drawServerEnemies(ctx) {
+        if (this.serverEnemies.size === 0) {
+            console.log('⚠️ drawServerEnemies called but no enemies to draw');
+            return;
+        }
+        
+        console.log(`🎨 Drawing ${this.serverEnemies.size} server enemies`);
         this.serverEnemies.forEach(enemy => {
             // Draw enemy
-            ctx.fillStyle = enemy.color;
+            ctx.fillStyle = enemy.color || '#ff0000';
             ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+            ctx.arc(enemy.x, enemy.y, enemy.radius || 10, 0, Math.PI * 2);
             ctx.fill();
             
             // Draw enemy outline
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+            ctx.arc(enemy.x, enemy.y, enemy.radius || 10, 0, Math.PI * 2);
             ctx.stroke();
             
             // Draw enemy type indicator
             ctx.fillStyle = '#ffffff';
             ctx.font = '10px "Roboto Mono"';
             ctx.textAlign = 'center';
-            ctx.fillText(enemy.type.charAt(0).toUpperCase(), enemy.x, enemy.y + 3);
+            ctx.fillText((enemy.type || 'B').charAt(0).toUpperCase(), enemy.x, enemy.y + 3);
         });
     }
     
