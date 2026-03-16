@@ -241,7 +241,10 @@ class SimpleLobbyServer {
     
     checkStartGame() {
         // Need at least 1 player in lobby
-        if (this.lobbyPlayers.size === 0) return;
+        if (this.lobbyPlayers.size === 0) {
+            console.log('Cannot start: No players in lobby');
+            return;
+        }
         
         // Check if all lobby players are ready
         const allReady = Array.from(this.lobbyPlayers).every(playerId => {
@@ -251,8 +254,15 @@ class SimpleLobbyServer {
         
         console.log(`Check start: ${this.lobbyPlayers.size} in lobby, all ready: ${allReady}, game active: ${this.gameActive}`);
         
+        // List players and their ready status for debugging
+        console.log('Players in lobby:');
+        Array.from(this.lobbyPlayers).forEach(playerId => {
+            const player = this.players.get(playerId);
+            console.log(`  ${player.name} (${playerId}): ready=${player.ready}`);
+        });
+        
         if (allReady && !this.gameActive) {
-            console.log('All players ready! Starting game...');
+            console.log(`All ${this.lobbyPlayers.size} player(s) ready! Starting game in 3 seconds...`);
             
             // Start game after 3 seconds
             setTimeout(() => {
@@ -264,6 +274,8 @@ class SimpleLobbyServer {
                 type: 'gameStarting',
                 countdown: 3
             });
+        } else if (!allReady) {
+            console.log(`Not all players ready. Need ${this.lobbyPlayers.size} ready, have ${Array.from(this.lobbyPlayers).filter(id => this.players.get(id).ready).length}`);
         }
     }
     

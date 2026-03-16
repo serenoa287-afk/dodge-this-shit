@@ -164,15 +164,19 @@ class SimpleLobbyClient {
     
     connect() {
         if (this.connected) {
+            console.log('Already connected, joining lobby...');
             this.joinLobby();
             return;
         }
+        
+        console.log(`Connecting to ${this.serverUrl}...`);
+        this.showMessage('Connecting to server...');
         
         try {
             this.ws = new WebSocket(this.serverUrl);
             
             this.ws.onopen = () => {
-                console.log('Connected to lobby server');
+                console.log('✅ Connected to lobby server');
                 this.connected = true;
                 this.showMessage('Connected! Joining lobby...');
                 
@@ -184,14 +188,15 @@ class SimpleLobbyClient {
             this.ws.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data);
+                    console.log('📨 Received:', message.type);
                     this.handleMessage(message);
                 } catch (error) {
-                    console.error('Error parsing message:', error);
+                    console.error('Error parsing message:', error, 'Raw:', event.data);
                 }
             };
             
-            this.ws.onclose = () => {
-                console.log('Disconnected from lobby server');
+            this.ws.onclose = (event) => {
+                console.log(`🔌 Disconnected from lobby server. Code: ${event.code}, Reason: ${event.reason}`);
                 this.connected = false;
                 this.inLobby = false;
                 this.lobbyPlayers.clear();
@@ -199,12 +204,12 @@ class SimpleLobbyClient {
             };
             
             this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                this.showMessage('Connection failed. Make sure server is running!');
+                console.error('❌ WebSocket error:', error);
+                this.showMessage('Connection failed. Make sure server is running on port 8080!');
             };
             
         } catch (error) {
-            console.error('Failed to connect:', error);
+            console.error('❌ Failed to connect:', error);
             this.showMessage(`Connection error: ${error.message}`);
         }
     }
@@ -438,6 +443,8 @@ class SimpleLobbyClient {
     }
     
     startGame(message) {
+        console.log('🎮 Game starting!', message);
+        
         // Configure game for multiplayer
         this.game.isMultiplayer = true;
         this.game.multiplayer = this;
@@ -446,16 +453,30 @@ class SimpleLobbyClient {
         this.game.score = 0;
         this.game.lives = 3;
         this.game.level = message.initialGameState?.level || 1;
-        this.game.roundTimer = message.roundTimer || 30000;
+        this.game.roundTimer = 0; // Start at 0, server controls timer
         this.game.roundActive = true;
+        this.game.roundDuration = message.roundTimer || 10000; // 10 seconds
         
-        // Clear local enemies
+        // Clear local enemies (server controls enemies in multiplayer)
         this.game.enemies = [];
+        this.game.enemyCount = 0;
+        
+        // Hide lobby menu
+        this.hideLobbyMenu();
+        
+        // Hide start screen and show game
+        if (this.game.startScreen) {
+            this.game.startScreen.style.display = 'none';
+        }
+        if (this.game.gameOverScreen) {
+            this.game.gameOverScreen.style.display = 'none';
+        }
         
         // Start game
         this.game.gameState = 'playing';
-        this.game.startGame();
         this.game.updateUI();
+        
+        console.log('✅ Multiplayer game started!');
     }
     
     updateGameState(message) {
