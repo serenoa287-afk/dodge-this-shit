@@ -640,8 +640,9 @@ class SimpleLobbyServer {
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         let x, y, velocityX, velocityY;
         
-        const baseSpeed = 0.3 + (level * 0.05);
-        const speed = Math.min(0.5, baseSpeed);
+        // Base speed should be SLOWER than player (player speed = 0.3)
+        const baseSpeed = 0.25 + (level * 0.02); // Start at 0.25, increase slowly
+        const speed = Math.min(0.35, baseSpeed); // Cap at 0.35 (still slower than player 0.3 with multiplier)
         
         switch(side) {
             case 0: // Top
@@ -672,14 +673,15 @@ class SimpleLobbyServer {
         
         const enemy = this.createEnemy(x, y, velocityX, velocityY, level);
         this.gameState.enemies.push(enemy);
-        console.log(`  Spawned ${enemy.type} enemy at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+        const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
+        console.log(`  Spawned ${enemy.type} enemy at (${x.toFixed(0)}, ${y.toFixed(0)}) speed=${speed.toFixed(3)} multiplier=${enemy.speedMultiplier}`);
     }
     
     spawnRowPattern() {
         const level = this.gameState.level;
         const side = Math.floor(Math.random() * 2); // 0: top, 1: bottom
-        const baseSpeed = 0.3 + (level * 0.05);
-        const speed = Math.min(0.45, baseSpeed);
+        const baseSpeed = 0.25 + (level * 0.02);
+        const speed = Math.min(0.35, baseSpeed);
         
         // Number of enemies in row: 3-7, increases with level
         const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(level / 3));
@@ -710,8 +712,8 @@ class SimpleLobbyServer {
     spawnColumnPattern() {
         const level = this.gameState.level;
         const side = Math.floor(Math.random() * 2); // 0: left, 1: right
-        const baseSpeed = 0.3 + (level * 0.05);
-        const speed = Math.min(0.45, baseSpeed);
+        const baseSpeed = 0.25 + (level * 0.02);
+        const speed = Math.min(0.35, baseSpeed);
         
         // Number of enemies in column: 3-7, increases with level
         const count = 3 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(level / 3));
@@ -755,8 +757,8 @@ class SimpleLobbyServer {
     spawnStaggeredPattern() {
         const level = this.gameState.level;
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-        const baseSpeed = 0.3 + (level * 0.05);
-        const speed = Math.min(0.4, baseSpeed);
+        const baseSpeed = 0.25 + (level * 0.02);
+        const speed = Math.min(0.3, baseSpeed);
         
         // Number of enemies: 5-10, increases with level
         const count = 5 + Math.floor(Math.random() * 4) + Math.min(3, Math.floor(level / 2));
@@ -838,8 +840,8 @@ class SimpleLobbyServer {
     
     spawnChaserWave() {
         const level = this.gameState.level;
-        const baseSpeed = 0.3 + (level * 0.05);
-        const speed = Math.min(0.4, baseSpeed);
+        const baseSpeed = 0.25 + (level * 0.02);
+        const speed = Math.min(0.3, baseSpeed);
         
         // Spawn 3-5 chasers from different corners
         const count = 3 + Math.floor(Math.random() * 3);
@@ -962,9 +964,9 @@ class SimpleLobbyServer {
             enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
             enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
             
-            // Limit speed (match enemy.js speed multiplier 1.3)
+            // Limit speed (HOMING = must be slow)
             const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
-            const maxSpeed = 0.5; // Reasonable max speed
+            const maxSpeed = 0.25; // Very slow max speed
             if (speed > maxSpeed) {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
