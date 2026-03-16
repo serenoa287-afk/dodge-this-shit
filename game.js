@@ -21,6 +21,8 @@ class Game {
         this.multiplayer = null;
         this.isMultiplayer = false;
         this.multiplayerRound = 1;
+        this.playerDead = false;
+        this.playerDeathTime = 0;
         
         // Timing
         this.lastTime = 0;
@@ -735,7 +737,9 @@ class Game {
         // In multiplayer, don't show game over screen immediately
         // Players might be revived next round
         if (this.isMultiplayer && this.multiplayer) {
-            // Just update UI, keep playing as spectator
+            // Player is dead - hide them
+            this.playerDead = true;
+            this.playerDeathTime = Date.now();
             this.updateUI();
             return;
         }
@@ -750,8 +754,13 @@ class Game {
         // Draw grid background
         this.drawGrid();
         
-        // Draw player
-        this.player.draw(this.ctx);
+        // Draw player (if not dead in multiplayer)
+        if (!(this.isMultiplayer && this.playerDead)) {
+            this.player.draw(this.ctx);
+        } else if (this.isMultiplayer && this.playerDead) {
+            // Draw death animation for local player
+            this.drawPlayerDeathAnimation();
+        }
         
         // Draw other players in multiplayer
         if (this.isMultiplayer && this.multiplayer && this.multiplayer.drawOtherPlayers) {
@@ -804,6 +813,42 @@ class Game {
             this.ctx.beginPath();
             this.ctx.arc(player.position.x - 10 + (i * 10), player.position.y + 25, 4, 0, Math.PI * 2);
             this.ctx.fill();
+        }
+    }
+    
+    drawPlayerDeathAnimation() {
+        if (!this.playerDeathTime) return;
+        
+        const elapsed = Date.now() - this.playerDeathTime;
+        const duration = 1000; // 1 second animation
+        const progress = Math.min(1, elapsed / duration);
+        
+        // Fade out and shrink
+        const alpha = 1 - progress;
+        const radius = 15 * (1 - progress);
+        
+        this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+        this.ctx.beginPath();
+        this.ctx.arc(this.player.x, this.player.y, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw explosion particles at the end
+        if (progress >= 0.8) {
+            this.ctx.fillStyle = '#ff9900';
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = 20 * (progress - 0.8) * 5;
+                const px = this.player.x + Math.cos(angle) * distance;
+                const py = this.player.y + Math.sin(angle) * distance;
+                this.ctx.beginPath();
+                this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        // After animation completes, player stays hidden
+        if (progress >= 1) {
+            // Animation complete, player remains hidden
         }
     }
     
@@ -896,6 +941,8 @@ class Game {
         this.roundTimer = 0;
         this.enemies = [];
         this.enemyCount = 0;
+        this.playerDead = false; // Reset death state
+        this.playerDeathTime = 0;
         
         // Reset player position for multiplayer
         this.player.x = this.canvas.width / 2;

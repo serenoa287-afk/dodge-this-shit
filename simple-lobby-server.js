@@ -583,7 +583,7 @@ class SimpleLobbyServer {
                 break;
             case 'chaser':
                 radius = 10 + Math.random() * 5;
-                speedMultiplier = 1.3;
+                speedMultiplier = 1.1; // Reduced from 1.3
                 health = 1;
                 damage = 1;
                 color = '#ff9900'; // Orange
@@ -942,20 +942,20 @@ class SimpleLobbyServer {
     }
     
     updateChaserBehavior(enemy, player, deltaTime) {
-        // Simple chasing: move toward player
+        // Simple chasing: move toward player (SLOW)
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            // Normalize and apply chasing
-            const chaseStrength = 0.05; // How strongly it chases
+            // Normalize and apply chasing (VERY WEAK)
+            const chaseStrength = 0.01; // Reduced from 0.05 (5x slower)
             enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
             enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
             
-            // Limit speed
+            // Limit speed (SLOWER)
             const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
-            const maxSpeed = 0.5;
+            const maxSpeed = 0.3; // Reduced from 0.5
             if (speed > maxSpeed) {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
