@@ -552,6 +552,7 @@ class SimpleLobbyServer {
     getEnemyProperties(type, level) {
         let radius, speedMultiplier, health, damage, color;
         
+        // Use EXACT same values as enemy.js (game.js single player)
         switch(type) {
             case 'basic':
                 radius = 10 + Math.random() * 5;
@@ -562,7 +563,7 @@ class SimpleLobbyServer {
                 break;
             case 'fast':
                 radius = 8 + Math.random() * 4;
-                speedMultiplier = 1.05; // Only slightly faster than basic
+                speedMultiplier = 1.5; // Same as enemy.js
                 health = 1;
                 damage = 1;
                 color = '#ffff00'; // Yellow
@@ -576,21 +577,21 @@ class SimpleLobbyServer {
                 break;
             case 'splitter':
                 radius = 12 + Math.random() * 6;
-                speedMultiplier = 0.9; // Slightly slower than player
+                speedMultiplier = 1.2; // Same as enemy.js
                 health = 1;
                 damage = 1;
                 color = '#00ff00'; // Green
                 break;
             case 'chaser':
-                radius = 10 + Math.random() * 5;
-                speedMultiplier = 0.7; // Even slower than player
+                radius = 9 + Math.random() * 4; // Same as enemy.js
+                speedMultiplier = 1.3; // Same as enemy.js
                 health = 1;
                 damage = 1;
                 color = '#ff9900'; // Orange
                 break;
             case 'stalker':
-                radius = 9 + Math.random() * 4;
-                speedMultiplier = 0.85; // Slower than player
+                radius = 11 + Math.random() * 5; // Same as enemy.js
+                speedMultiplier = 1.1; // Same as enemy.js
                 health = 1;
                 damage = 1;
                 color = '#ff00ff'; // Purple
@@ -947,20 +948,22 @@ class SimpleLobbyServer {
     }
     
     updateChaserBehavior(enemy, player, deltaTime) {
-        // Simple chasing: move toward player (SLOW)
+        // Simple chasing: move toward player (match enemy.js)
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            // Normalize and apply chasing (EXTREMELY WEAK)
-            const chaseStrength = 0.005; // Reduced from 0.01 (2x slower)
+            // Normalize and apply chasing (match enemy.js: 0.05 + level * 0.005)
+            const baseChaseStrength = 0.05;
+            const levelBonus = this.gameState.level * 0.005;
+            const chaseStrength = baseChaseStrength + levelBonus;
             enemy.velocityX += (dx / distance) * chaseStrength * deltaTime;
             enemy.velocityY += (dy / distance) * chaseStrength * deltaTime;
             
-            // Limit speed (VERY SLOW)
+            // Limit speed (match enemy.js speed multiplier 1.3)
             const speed = Math.sqrt(enemy.velocityX * enemy.velocityX + enemy.velocityY * enemy.velocityY);
-            const maxSpeed = 0.25; // Reduced from 0.3
+            const maxSpeed = 0.5; // Reasonable max speed
             if (speed > maxSpeed) {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
@@ -969,37 +972,41 @@ class SimpleLobbyServer {
     }
     
     updateStalkerBehavior(enemy, player, deltaTime) {
-        // Initialize stalker state if needed
+        // Initialize stalker state if needed (match enemy.js)
         if (!enemy.stalkPhase) {
             enemy.stalkPhase = 'chase';
             enemy.stalkTimer = 0;
+            enemy.chaseDuration = 2000 + Math.random() * 1500; // 2-3.5s like enemy.js
+            enemy.pauseDuration = 1000 + Math.random() * 1000; // 1-2s like enemy.js
         }
         
         enemy.stalkTimer += deltaTime;
         
         if (enemy.stalkPhase === 'chase') {
-            // Chase for 2 seconds
-            if (enemy.stalkTimer > 2000) {
+            // Chase for duration (match enemy.js)
+            if (enemy.stalkTimer > enemy.chaseDuration) {
                 enemy.stalkPhase = 'pause';
                 enemy.stalkTimer = 0;
                 // Stop moving during pause
                 enemy.velocityX = 0;
                 enemy.velocityY = 0;
             } else {
-                // Chase player
+                // Chase player with homing (match enemy.js: 0.04 + level * 0.004)
                 const dx = player.x - enemy.x;
                 const dy = player.y - enemy.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (distance > 0) {
-                    const chaseStrength = 0.04;
-                    enemy.velocityX = (dx / distance) * chaseStrength;
-                    enemy.velocityY = (dy / distance) * chaseStrength;
+                    const baseHoming = 0.04;
+                    const levelBonus = this.gameState.level * 0.004;
+                    const homingStrength = baseHoming + levelBonus;
+                    enemy.velocityX = (dx / distance) * homingStrength;
+                    enemy.velocityY = (dy / distance) * homingStrength;
                 }
             }
         } else if (enemy.stalkPhase === 'pause') {
-            // Pause for 1 second
-            if (enemy.stalkTimer > 1000) {
+            // Pause for duration (match enemy.js)
+            if (enemy.stalkTimer > enemy.pauseDuration) {
                 enemy.stalkPhase = 'chase';
                 enemy.stalkTimer = 0;
             }
