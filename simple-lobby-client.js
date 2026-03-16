@@ -43,7 +43,7 @@ class SimpleLobbyClient {
                     padding: 10px;
                     background: rgba(0, 255, 234, 0.1);
                     border-radius: 8px;
-                    color: #00ffea;
+                    color: #333333; // Dark gray (paperlike)
                     font-family: 'Press Start 2P', cursive;
                     font-size: 12px;
                     text-align: center;
@@ -64,30 +64,30 @@ class SimpleLobbyClient {
                 background: rgba(0, 0, 0, 0.95);
                 padding: 30px;
                 border-radius: 15px;
-                border: 3px solid #00ffea;
+                border: 3px solid #333333; // Dark gray (paperlike)
                 z-index: 1000;
                 max-width: 500px;
                 width: 90%;
                 text-align: center;
             ">
-                <h2 style="color: #00ffea; margin-bottom: 20px;">🎮 MULTIPLAYER LOBBY</h2>
+                <h2 style="color: #333333; margin-bottom: 20px;">🎮 MULTIPLAYER LOBBY</h2>
                 
                 <div id="lobby-connection-section" ${this.connected ? 'style="display: none;"' : ''}>
                     <div style="margin: 20px 0;">
                         <label style="display: block; margin-bottom: 10px; color: #aaa;">Your Name:</label>
                         <input type="text" id="lobby-player-name" value="${this.playerName}" 
                                style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); 
-                                      border: 2px solid #00ffea; border-radius: 5px; color: white;">
+                                      border: 2px solid #333333; border-radius: 5px; color: #333333;">
                     </div>
                     
                     <button id="lobby-connect-btn" class="btn btn-primary" 
-                            style="width: 100%; background: #00ffea; color: #000; margin-top: 20px;">
+                            style="width: 100%; background: #666666; color: white; margin-top: 20px;">
                         Connect & Join Lobby
                     </button>
                 </div>
                 
                 <div id="lobby-waiting-room" ${this.connected && this.inLobby ? '' : 'style="display: none;"'}>
-                    <h3 style="color: #00ffea; margin: 20px 0;">WAITING ROOM</h3>
+                    <h3 style="color: #333333; margin: 20px 0;">WAITING ROOM</h3>
                     
                     <div style="margin: 10px 0; color: #aaa;">
                         <div>Players in lobby: <span id="lobby-count">${this.lobbyPlayerCount}</span>/4</div>
@@ -472,7 +472,7 @@ class SimpleLobbyClient {
                     <div style="margin: 5px 0; padding: 10px; background: rgba(255,255,255,0.05); 
                          border-radius: 5px; display: flex; align-items: center; gap: 10px;">
                         <div style="width: 12px; height: 12px; border-radius: 50%; background: ${player.color};"></div>
-                        <div style="flex: 1; color: ${player.id === this.playerId ? '#00ffea' : 'white'}">
+                        <div style="flex: 1; color: ${player.id === this.playerId ? '#333333' : '#666666'}">
                             ${player.name} ${player.id === this.playerId ? '(You)' : ''}
                         </div>
                         <div style="color: ${player.ready ? '#00ff00' : '#ffa500'};">
@@ -741,11 +741,11 @@ class SimpleLobbyClient {
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #00ffea;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333333;
             padding: 10px 20px;
             border-radius: 10px;
-            border: 2px solid #00ffea;
+            border: 2px solid #333333;
             z-index: 1000;
             font-family: 'Press Start 2P', cursive;
             font-size: 12px;
@@ -768,11 +768,11 @@ class SimpleLobbyClient {
             top: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: #00ffea;
+            background: rgba(255, 255, 255, 0.98);
+            color: #333333;
             padding: 15px 30px;
             border-radius: 8px;
-            border: 2px solid #00ffea;
+            border: 2px solid #333333;
             font-family: 'Press Start 2P', cursive;
             font-size: 16px;
             text-align: center;
