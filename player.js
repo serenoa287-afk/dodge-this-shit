@@ -39,8 +39,8 @@ class Player {
             this.velocity.y *= 0.7071;
         }
         
-        // Handle dash (Space key)
-        if (keys[' '] && this.dashCooldown <= 0 && !this.isDashing) {
+        // Handle dash (F key)
+        if (keys['f'] && this.dashCooldown <= 0 && !this.isDashing) {
             this.isDashing = true;
             this.dashDuration = 200; // 200ms dash
             this.dashCooldown = 1000; // 1 second cooldown

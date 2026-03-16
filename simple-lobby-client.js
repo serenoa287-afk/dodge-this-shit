@@ -744,25 +744,45 @@ class SimpleLobbyClient {
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.9);
             color: #00ffea;
-            padding: 30px 60px;
-            border-radius: 15px;
-            border: 4px solid #00ffea;
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 3px solid #00ffea;
             font-family: 'Press Start 2P', cursive;
-            font-size: 24px;
+            font-size: 18px;
             text-align: center;
             z-index: 1001;
             pointer-events: none;
-            box-shadow: 0 0 30px rgba(0, 255, 234, 0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
         `;
+        
+        // Create countdown element
+        const countdownElement = document.createElement('div');
+        countdownElement.style.cssText = 'font-size: 14px; color: #ffffff; margin-top: 10px;';
+        
         roundDiv.innerHTML = `
-            <div style="margin-bottom: 20px;">🎉 ROUND ${roundNumber} COMPLETE! 🎉</div>
-            <div style="font-size: 16px; color: #ffffff;">Next round starting in ${delay/1000} seconds...</div>
+            <div style="margin-bottom: 10px;">🎉 ROUND ${roundNumber} COMPLETE! 🎉</div>
+            <div style="font-size: 14px; color: #ffffff;">Next round starting in <span id="round-countdown">${delay/1000}</span> seconds...</div>
         `;
         
         document.body.appendChild(roundDiv);
         
+        // Start countdown
+        let secondsRemaining = delay / 1000;
+        const countdownInterval = setInterval(() => {
+            secondsRemaining -= 0.1;
+            const countdownSpan = document.getElementById('round-countdown');
+            if (countdownSpan) {
+                countdownSpan.textContent = secondsRemaining.toFixed(1);
+            }
+            
+            if (secondsRemaining <= 0.1) {
+                clearInterval(countdownInterval);
+            }
+        }, 100);
+        
         // Remove after the delay (or slightly before next round starts)
         setTimeout(() => {
+            clearInterval(countdownInterval);
             if (roundDiv.parentNode) {
                 roundDiv.parentNode.removeChild(roundDiv);
             }
@@ -776,21 +796,21 @@ class SimpleLobbyClient {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.9);
             color: #ff0000;
-            padding: 40px 80px;
-            border-radius: 20px;
-            border: 5px solid #ff0000;
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 3px solid #ff0000;
             font-family: 'Press Start 2P', cursive;
-            font-size: 32px;
+            font-size: 20px;
             text-align: center;
             z-index: 1002;
             pointer-events: none;
-            box-shadow: 0 0 40px rgba(255, 0, 0, 0.7);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
         `;
         gameOverDiv.innerHTML = `
-            <div style="margin-bottom: 30px;">💀 ${message} 💀</div>
-            <div style="font-size: 18px; color: #ffffff;">Returning to menu in 3 seconds...</div>
+            <div style="margin-bottom: 15px;">💀 ${message} 💀</div>
+            <div style="font-size: 14px; color: #ffffff;">Returning to menu in 3 seconds...</div>
         `;
         
         document.body.appendChild(gameOverDiv);
