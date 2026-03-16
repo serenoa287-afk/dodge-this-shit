@@ -95,7 +95,10 @@ class Game {
                 const rect = this.canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-                this.player.moveTo(x, y);
+                // Only move player if not dead in multiplayer
+                if (!(this.isMultiplayer && this.playerDead)) {
+                    this.player.moveTo(x, y);
+                }
             }
         });
         
@@ -195,12 +198,14 @@ class Game {
     }
     
     update() {
-        // Update player
-        this.player.update(this.keys, this.deltaTime);
-        
-        // Keep player within bounds
-        this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
-        this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
+        // Update player (if not dead in multiplayer)
+        if (!(this.isMultiplayer && this.playerDead)) {
+            this.player.update(this.keys, this.deltaTime);
+            
+            // Keep player within bounds
+            this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
+            this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
+        }
         
         // Send player position to server in multiplayer
         if (this.isMultiplayer && this.multiplayer && this.gameState === 'playing') {
@@ -738,6 +743,7 @@ class Game {
         // Players might be revived next round
         if (this.isMultiplayer && this.multiplayer) {
             // Player is dead - hide them
+            console.log(`💀 Local player died! Setting playerDead = true`);
             this.playerDead = true;
             this.playerDeathTime = Date.now();
             this.updateUI();
@@ -823,6 +829,11 @@ class Game {
         const duration = 1000; // 1 second animation
         const progress = Math.min(1, elapsed / duration);
         
+        // Don't draw anything after animation completes
+        if (progress >= 1) {
+            return; // Animation complete, player stays completely hidden
+        }
+        
         // Fade out and shrink
         const alpha = 1 - progress;
         const radius = 15 * (1 - progress);
@@ -844,11 +855,6 @@ class Game {
                 this.ctx.arc(px, py, 3, 0, Math.PI * 2);
                 this.ctx.fill();
             }
-        }
-        
-        // After animation completes, player stays hidden
-        if (progress >= 1) {
-            // Animation complete, player remains hidden
         }
     }
     
@@ -941,6 +947,7 @@ class Game {
         this.roundTimer = 0;
         this.enemies = [];
         this.enemyCount = 0;
+        console.log(`🔄 Round ${round} starting - resetting playerDead from ${this.playerDead} to false`);
         this.playerDead = false; // Reset death state
         this.playerDeathTime = 0;
         
