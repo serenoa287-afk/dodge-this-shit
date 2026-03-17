@@ -268,7 +268,8 @@ class Game {
             enemy.update(this.deltaTime, this.player.x, this.player.y);
             
             // Handle chaser explosions
-            if (enemy.type === 'chaser' && enemy.isExploding) {
+            // Skip explosion damage if player is dead in multiplayer
+            if (enemy.type === 'chaser' && enemy.isExploding && !(this.isMultiplayer && this.playerDead)) {
                 // Check if player is within explosion radius
                 const dx = this.player.x - enemy.x;
                 const dy = this.player.y - enemy.y;
@@ -286,7 +287,8 @@ class Game {
             }
             
             // Check collision with player (for non-exploding chasers)
-            if (enemy.type !== 'chaser' || !enemy.isExploding) {
+            // Skip collision check if player is dead in multiplayer
+            if ((enemy.type !== 'chaser' || !enemy.isExploding) && !(this.isMultiplayer && this.playerDead)) {
                 if (this.checkCollision(this.player, enemy)) {
                     this.lives--;
                     this.enemies.splice(i, 1);
@@ -800,14 +802,23 @@ class Game {
         }
         
         // Draw server enemies in synchronized multiplayer
-        if (this.isMultiplayer && this.multiplayer && this.multiplayer.gameActive && this.multiplayer.drawServerEnemies) {
-            console.log('🎮 Game calling drawServerEnemies');
-            this.multiplayer.drawServerEnemies(this.ctx);
+        // Dead players should still see enemies (gameActive might be false for dead players, so check differently)
+        if (this.isMultiplayer && this.multiplayer && this.multiplayer.drawServerEnemies) {
+            // For dead players, we should still draw enemies if we're connected and in a lobby
+            // The game might still be active for other players even if this player is dead
+            if (this.multiplayer.inLobby && this.multiplayer.connected) {
+                console.log('🎮 Game calling drawServerEnemies (player might be dead)');
+                this.multiplayer.drawServerEnemies(this.ctx);
+            } else {
+                console.log('🎮 Game NOT calling drawServerEnemies (not in lobby or not connected):', {
+                    inLobby: this.multiplayer?.inLobby,
+                    connected: this.multiplayer?.connected
+                });
+            }
         } else {
-            console.log('🎮 Game NOT calling drawServerEnemies:', {
+            console.log('🎮 Game NOT calling drawServerEnemies (no draw method or not multiplayer):', {
                 isMultiplayer: this.isMultiplayer,
                 hasMultiplayer: !!this.multiplayer,
-                gameActive: this.multiplayer?.gameActive,
                 hasDrawMethod: !!this.multiplayer?.drawServerEnemies
             });
         }
@@ -985,11 +996,17 @@ class Game {
         this.playerDead = false; // Reset death state
         this.playerDeathTime = 0;
         
+        // Reset lives to 3 for new round
+        this.lives = 3;
+        
         // Reset player position for multiplayer
         this.player.x = this.canvas.width / 2;
         this.player.y = this.canvas.height / 2;
         
-        console.log(`Multiplayer round ${round} started`);
+        // Update UI to show new lives
+        this.updateUI();
+        
+        console.log(`Multiplayer round ${round} started with ${this.lives} lives`);
     }
     
     spawnMultiplayerEnemies(enemies) {
