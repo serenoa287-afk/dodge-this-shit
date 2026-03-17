@@ -731,11 +731,12 @@ class Game {
         this.levelManager.applyLevelEffects(this.level);
         
         // Show round complete message
-        this.ctx.fillStyle = '#333333'; // Dark gray (paperlike)
+        this.ctx.fillStyle = '#ffffff'; // White text for better visibility
         this.ctx.font = '40px "Press Start 2P"';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`ROUND ${this.level - 1} COMPLETE!`, this.canvas.width / 2, this.canvas.height / 2 - 30);
         this.ctx.font = '24px "Press Start 2P"';
+        this.ctx.fillStyle = '#00ffea'; // Cyan for bonus text
         this.ctx.fillText(`+${roundBonus} BONUS`, this.canvas.width / 2, this.canvas.height / 2 + 30);
         
         // Start next round after 3 seconds
@@ -917,8 +918,8 @@ class Game {
     }
     
     drawHUD() {
-        // Score display
-        this.ctx.fillStyle = '#333333'; // Dark gray (paperlike)
+        // Score display - changed to white for better visibility on black background
+        this.ctx.fillStyle = '#ffffff'; // White text
         this.ctx.font = '16px "Press Start 2P"';
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`SCORE: ${this.score}`, 20, 30);
@@ -936,9 +937,9 @@ class Game {
             
             // Timer bar
             const progress = timeLeft / this.roundDuration;
-            this.ctx.fillStyle = '#666666'; // Medium gray (paperlike)
+            this.ctx.fillStyle = '#00ffea'; // Cyan timer bar for better visibility
             this.ctx.fillRect(20, 130, 200 * progress, 5);
-            this.ctx.strokeStyle = '#333333'; // Dark gray border
+            this.ctx.strokeStyle = '#ffffff'; // White border
             this.ctx.strokeRect(20, 130, 200, 5);
         }
         
@@ -1015,7 +1016,7 @@ class Game {
         this.enemyCount = 0;
         
         // Show bonus message
-        this.ctx.fillStyle = '#333333'; // Dark gray (paperlike)
+        this.ctx.fillStyle = '#00ffea'; // Cyan text for better visibility
         this.ctx.font = '40px "Press Start 2P"';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`+${bonus} BONUS`, this.canvas.width / 2, this.canvas.height / 2);
