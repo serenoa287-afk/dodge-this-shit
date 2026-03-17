@@ -1,6 +1,21 @@
 // Simple Lobby Server for Dodge This Shit
 const WebSocket = require('ws');
 const http = require('http');
+const os = require('os');
+
+// Function to get host IP address dynamically
+function getHostIp() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Skip internal and non-IPv4 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost'; // Fallback
+}
 
 class SimpleLobbyServer {
     constructor(port = 8080) {
@@ -1445,7 +1460,7 @@ class SimpleLobbyServer {
             🎮 Simple Lobby Server
             ======================
             Server running on port: ${this.port}
-            WebSocket endpoint: ws://localhost:${this.port}
+            WebSocket endpoint: ws://${getHostIp()}:${this.port}
             
             Features:
             - Single lobby (max 4 players)

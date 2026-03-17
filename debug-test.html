@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multiplayer Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #log { background: #000; color: #0f0; padding: 10px; height: 300px; overflow-y: scroll; font-family: monospace; }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>Multiplayer WebSocket Debug Test</h1>
+    
+    <button onclick="connect()">Connect to WebSocket</button>
+    <button onclick="sendTest()">Send Test Message</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <h3>Connection Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        let ws = null;
+        const log = document.getElementById('log');
+        
+        function addLog(message, className = 'info') {
+            const entry = document.createElement('div');
+            entry.className = className;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addLog('Already connected', 'info');
+                return;
+            }
+            
+            // Get host from current page URL
+            const host = window.location.hostname;
+            const wsUrl = `ws://${host}:8080`;
+            addLog(`Connecting to ${wsUrl}...`, 'info');
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                addLog('✅ WebSocket connection opened!', 'success');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addLog(`📨 Received: ${data.type}`, 'info');
+                    console.log('Full message:', data);
+                } catch (e) {
+                    addLog(`📨 Received raw: ${event.data}`, 'info');
+                }
+            };
+            
+            ws.onerror = (error) => {
+                addLog(`❌ WebSocket error: ${error}`, 'error');
+            };
+            
+            ws.onclose = (event) => {
+                addLog(`🔌 Connection closed. Code: ${event.code}, Reason: ${event.reason}`, 'info');
+            };
+        }
+        
+        function sendTest() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addLog('Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            const testMessage = {
+                type: 'test',
+                message: 'Hello from debug client'
+            };
+            
+            ws.send(JSON.stringify(testMessage));
+            addLog('Sent test message', 'info');
+        }
+    </script>
+</body>
+</html>

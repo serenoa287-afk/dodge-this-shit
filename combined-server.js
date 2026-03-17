@@ -3,12 +3,27 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
+const os = require('os');
 
 const HTTP_PORT = process.env.HTTP_PORT || 3000;
 const WS_PORT = process.env.WS_PORT || 8080;
 
 // Import multiplayer server logic
 const MultiplayerServer = require('./multiplayer-server');
+
+// Function to get host IP address dynamically
+function getHostIp() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Skip internal and non-IPv4 addresses
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost'; // Fallback
+}
 
 class CombinedServer {
     constructor() {
@@ -124,7 +139,7 @@ class CombinedServer {
                         <ol>
                             <li>Open the game in your browser</li>
                             <li>Click the "🎮 Multiplayer" button in the top-right</li>
-                            <li>Connect to: <code>ws://localhost:${WS_PORT}</code></li>
+                            <li>Connect to: <code>ws://${getHostIp()}:${WS_PORT}</code></li>
                             <li>Create or join a lobby</li>
                         </ol>
                         
@@ -163,7 +178,7 @@ class CombinedServer {
         console.log(`
             WebSocket Server running at:
             - Local: ws://localhost:${WS_PORT}
-            - Network: ws://[your-ip]:${WS_PORT}
+            - Network: ws://${getHostIp()}:${WS_PORT}
             
             Game Features:
             - Single-player with progressive difficulty

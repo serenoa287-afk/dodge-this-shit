@@ -17,7 +17,10 @@ class SimpleLobbyClient {
         this.serverEnemies = new Map();
         this.gameActive = false;
         
-        this.serverUrl = 'ws://localhost:8080';
+        // Get host IP dynamically from window.location
+        const host = window.location.hostname;
+        const port = 8080;
+        this.serverUrl = `ws://${host}:${port}`;
         
         this.init();
     }
