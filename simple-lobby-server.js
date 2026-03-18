@@ -974,6 +974,46 @@ class SimpleLobbyServer {
     }
     
     updateChaserBehavior(enemy, player, deltaTime) {
+        // Initialize chaser state if needed (match enemy.js)
+        if (!enemy.chaseTimer) {
+            enemy.chaseTimer = 0;
+            enemy.chaseDuration = 3000 + Math.random() * 2000; // 3-5 seconds like enemy.js
+            enemy.isExploding = false;
+            enemy.explosionTimer = 0;
+        }
+        
+        // If already exploding, handle explosion
+        if (enemy.isExploding) {
+            this.handleChaserExplosion(enemy, deltaTime);
+            return;
+        }
+        
+        // Update chase timer
+        enemy.chaseTimer += deltaTime;
+        
+        // Check if chase duration is over
+        if (enemy.chaseTimer >= enemy.chaseDuration) {
+            enemy.isExploding = true;
+            enemy.explosionTimer = 0;
+            enemy.maxExplosionRadius = 80 + (this.gameState.level * 5); // Match enemy.js
+            enemy.velocityX = 0;
+            enemy.velocityY = 0;
+            
+            // Send explosion animation start message
+            this.broadcastToLobby({
+                type: 'enemyExplosionStart',
+                enemyId: enemy.id,
+                enemyType: 'chaser',
+                x: enemy.x,
+                y: enemy.y,
+                maxRadius: enemy.maxExplosionRadius,
+                duration: 500 // 0.5 second explosion like enemy.js
+            });
+            
+            console.log(`💥 Chaser exploding! Radius: ${enemy.maxExplosionRadius}`);
+            return;
+        }
+        
         // Simple chasing: move toward player (match enemy.js)
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
@@ -994,6 +1034,57 @@ class SimpleLobbyServer {
                 enemy.velocityX = (enemy.velocityX / speed) * maxSpeed;
                 enemy.velocityY = (enemy.velocityY / speed) * maxSpeed;
             }
+        }
+    }
+    
+    handleChaserExplosion(enemy, deltaTime) {
+        enemy.explosionTimer += deltaTime;
+        const explosionProgress = Math.min(1, enemy.explosionTimer / 500); // 0.5s explosion (match enemy.js)
+        enemy.explosionRadius = enemy.maxExplosionRadius * explosionProgress;
+        
+        // Check if explosion hits players
+        this.lobbyPlayers.forEach(playerId => {
+            const p = this.players.get(playerId);
+            if (p && p.lives > 0) {
+                const dx = p.x - enemy.x;
+                const dy = p.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (15 + enemy.explosionRadius)) {
+                    // Player hit by explosion!
+                    p.lives -= enemy.damage || 1;
+                    
+                    // Notify player was hit
+                    this.broadcastToLobby({
+                        type: 'playerHit',
+                        playerId: playerId,
+                        damage: enemy.damage || 1,
+                        remainingLives: p.lives
+                    });
+                    
+                    // Check if player died
+                    if (p.lives <= 0) {
+                        console.log(`💀 Player ${p.name} died from chaser explosion!`);
+                        this.broadcastToLobby({
+                            type: 'playerDied',
+                            playerId: playerId,
+                            withAnimation: true
+                        });
+                    }
+                }
+            }
+        });
+        
+        // Remove enemy after explosion completes
+        if (enemy.explosionTimer >= 500) {
+            enemy.exploded = true;
+            enemy.shouldRemove = true;
+            
+            // Send explosion animation complete message
+            this.broadcastToLobby({
+                type: 'enemyExplosionComplete',
+                enemyId: enemy.id
+            });
         }
     }
     
@@ -1043,6 +1134,17 @@ class SimpleLobbyServer {
                 enemy.explosionRadius = 0;
                 enemy.maxExplosionRadius = 100 + (this.gameState.level * 8); // Match enemy.js
                 console.log(`💥 Stalker exploding! Radius: ${enemy.maxExplosionRadius}`);
+                
+                // Send explosion animation start message
+                this.broadcastToLobby({
+                    type: 'enemyExplosionStart',
+                    enemyId: enemy.id,
+                    enemyType: 'stalker',
+                    x: enemy.x,
+                    y: enemy.y,
+                    maxRadius: enemy.maxExplosionRadius,
+                    duration: 600
+                });
             }
         } else if (enemy.stalkPhase === 'explode') {
             // Handle explosion
@@ -1087,6 +1189,12 @@ class SimpleLobbyServer {
             if (enemy.explosionTimer >= 600) {
                 enemy.exploded = true;
                 enemy.shouldRemove = true;
+                
+                // Send explosion animation complete message
+                this.broadcastToLobby({
+                    type: 'enemyExplosionComplete',
+                    enemyId: enemy.id
+                });
             }
         }
     }
@@ -1126,6 +1234,17 @@ class SimpleLobbyServer {
             enemy.explosionRadius = 0;
             enemy.maxExplosionRadius = 50;
             console.log(`💥 Green splitter exploding!`);
+            
+            // Send explosion animation start message
+            this.broadcastToLobby({
+                type: 'enemyExplosionStart',
+                enemyId: enemy.id,
+                enemyType: 'splitter',
+                x: enemy.x,
+                y: enemy.y,
+                maxRadius: enemy.maxExplosionRadius,
+                duration: 500
+            });
         }
         
         // Handle explosion

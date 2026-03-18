@@ -403,6 +403,13 @@ class SimpleLobbyClient {
                     
                     if (message.playerId === this.playerId) {
                         this.showMessage('You died!');
+                        // Trigger local player death animation
+                        if (this.game) {
+                            console.log(`💀 Setting local playerDead = true`);
+                            this.game.playerDead = true;
+                            this.game.playerDeathTime = Date.now();
+                            this.game.updateUI();
+                        }
                     } else {
                         this.showMessage(`${deadPlayer.name} died!`);
                     }
@@ -414,6 +421,25 @@ class SimpleLobbyClient {
                 if (scoringPlayer) {
                     scoringPlayer.score = message.score;
                 }
+                break;
+                
+            case 'enemyExplosionStart':
+                // Start enemy explosion animation
+                const enemy = this.serverEnemies.get(message.enemyId);
+                if (enemy) {
+                    enemy.isExploding = true;
+                    enemy.explosionStartTime = Date.now();
+                    enemy.explosionDuration = message.duration || 600;
+                    enemy.maxExplosionRadius = message.maxRadius || 80;
+                    enemy.explosionType = message.enemyType || 'basic';
+                    console.log(`💥 Enemy ${message.enemyId} explosion started`);
+                }
+                break;
+                
+            case 'enemyExplosionComplete':
+                // Remove enemy after explosion completes
+                this.serverEnemies.delete(message.enemyId);
+                console.log(`✅ Enemy ${message.enemyId} explosion complete, removed`);
                 break;
                 
             case 'roundEnded':
@@ -700,7 +726,13 @@ class SimpleLobbyClient {
         
         console.log(`🎨 Drawing ${this.serverEnemies.size} server enemies`);
         this.serverEnemies.forEach(enemy => {
-            // Draw enemy
+            // Check if enemy is exploding
+            if (enemy.isExploding && enemy.explosionStartTime) {
+                this.drawEnemyExplosion(ctx, enemy);
+                return;
+            }
+            
+            // Draw normal enemy
             ctx.fillStyle = enemy.color || '#ff0000';
             ctx.beginPath();
             ctx.arc(enemy.x, enemy.y, enemy.radius || 10, 0, Math.PI * 2);
@@ -719,6 +751,54 @@ class SimpleLobbyClient {
             ctx.textAlign = 'center';
             ctx.fillText((enemy.type || 'B').charAt(0).toUpperCase(), enemy.x, enemy.y + 3);
         });
+    }
+    
+    drawEnemyExplosion(ctx, enemy) {
+        const elapsed = Date.now() - enemy.explosionStartTime;
+        const progress = Math.min(1, elapsed / enemy.explosionDuration);
+        
+        // Don't draw anything after explosion completes
+        if (progress >= 1) {
+            return;
+        }
+        
+        const alpha = 0.7 * (1 - progress); // Fade out
+        const explosionRadius = enemy.maxExplosionRadius * progress;
+        
+        // Outer explosion ring
+        ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, explosionRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner explosion fill
+        ctx.fillStyle = `rgba(255, 50, 0, ${alpha * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, explosionRadius * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Shockwave lines
+        const lineCount = 12;
+        for (let i = 0; i < lineCount; i++) {
+            const angle = (i * Math.PI * 2) / lineCount;
+            const length = explosionRadius * 1.2;
+            const endX = enemy.x + Math.cos(angle) * length;
+            const endY = enemy.y + Math.sin(angle) * length;
+            
+            ctx.strokeStyle = `rgba(255, 200, 0, ${alpha * 0.7})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(enemy.x, enemy.y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        }
+        
+        // Center flash
+        ctx.fillStyle = `rgba(255, 255, 200, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, (enemy.radius || 10) * 2, 0, Math.PI * 2);
+        ctx.fill();
     }
     
     checkCollisionsWithServerEnemies(playerX, playerY, playerRadius = 15) {
